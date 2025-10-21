@@ -42,6 +42,7 @@ const AppContent: React.FC = () => {
         agentType: (process.env.REACT_APP_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
         directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
         authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
+        useMock: process.env.REACT_APP_USE_MOCK_CLIENT === 'true',
       };
 
       // Debug token scope

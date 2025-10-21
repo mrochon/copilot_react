@@ -1,6 +1,7 @@
 import { CopilotStudioClient, ConnectionSettings, PowerPlatformCloud, AgentType } from '@microsoft/agents-copilotstudio-client';
 import { Activity } from '@microsoft/agents-activity';
 import { useAuth } from './AuthContext';
+import { MockCopilotStudioClient } from './MockCopilotStudioClient';
 
 export interface ChatMessage {
   id: string;
@@ -18,10 +19,11 @@ export interface CopilotStudioConfig {
   agentType?: AgentType;
   directConnectUrl?: string;
   authority?: string;
+  useMock?: boolean; // Flag to use mock client for testing
 }
 
 class CopilotStudioService {
-  private client: CopilotStudioClient | null = null;
+  private client: CopilotStudioClient | MockCopilotStudioClient | null = null;
   private conversationId: string | null = null;
 
   async initialize(config: CopilotStudioConfig, accessToken: string): Promise<void> {
@@ -48,8 +50,14 @@ class CopilotStudioService {
 
       console.log('Connection settings:', connectionSettings);
 
-      // Initialize the Copilot Studio client
-      this.client = new CopilotStudioClient(connectionSettings, accessToken);
+      // Initialize the Copilot Studio client (real or mock)
+      if (config.useMock) {
+        console.log('Using MockCopilotStudioClient for testing');
+        this.client = new MockCopilotStudioClient(connectionSettings, accessToken);
+      } else {
+        console.log('Using real CopilotStudioClient');
+        this.client = new CopilotStudioClient(connectionSettings, accessToken);
+      }
 
       // Start a new conversation
       await this.startNewConversation();
