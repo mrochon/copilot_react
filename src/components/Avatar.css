@@ -1,0 +1,305 @@
+/* Avatar Container */
+.avatar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 200px;
+  height: 200px;
+  margin: 20px auto;
+  transition: all 0.3s ease;
+}
+
+.avatar-container.listening {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+}
+
+.avatar-container.speaking {
+  animation: gentle-pulse 2s infinite;
+}
+
+/* Avatar Face */
+.avatar-face {
+  position: relative;
+  width: 150px;
+  height: 180px;
+  background: linear-gradient(135deg, #fdbcb4, #f4a5a5);
+  border-radius: 50% 50% 45% 45%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 3px solid #e8a798;
+}
+
+/* Eyes */
+.avatar-eye {
+  position: absolute;
+  width: 20px;
+  height: 25px;
+  background: white;
+  border-radius: 50%;
+  top: 50px;
+  transition: all 0.1s ease;
+  border: 1px solid #ccc;
+}
+
+.avatar-eye-left {
+  left: 35px;
+}
+
+.avatar-eye-right {
+  right: 35px;
+}
+
+.avatar-eye.blinking {
+  height: 3px;
+  border-radius: 50% 50% 0 0;
+}
+
+.avatar-pupil {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #333;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+}
+
+.avatar-eye.blinking .avatar-pupil {
+  opacity: 0;
+}
+
+/* Mouth Base */
+.avatar-mouth {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.1s ease;
+}
+
+.mouth-inner {
+  background: #8b4444;
+  border-radius: 50%;
+  transition: all 0.1s ease;
+}
+
+/* Mouth Shapes for Different Visemes */
+.mouth-neutral .mouth-inner {
+  width: 25px;
+  height: 8px;
+}
+
+.mouth-aa .mouth-inner {
+  width: 30px;
+  height: 25px;
+  border-radius: 50%;
+}
+
+.mouth-oh .mouth-inner {
+  width: 20px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.mouth-ay .mouth-inner {
+  width: 35px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.mouth-eh .mouth-inner {
+  width: 28px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.mouth-er .mouth-inner {
+  width: 22px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.mouth-ih .mouth-inner {
+  width: 25px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.mouth-ow .mouth-inner {
+  width: 18px;
+  height: 25px;
+  border-radius: 50%;
+}
+
+.mouth-oy .mouth-inner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+/* Consonant mouth shapes */
+.mouth-p .mouth-inner,
+.mouth-b .mouth-inner {
+  width: 30px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.mouth-t .mouth-inner,
+.mouth-d .mouth-inner {
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.mouth-k .mouth-inner,
+.mouth-g .mouth-inner {
+  width: 26px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.mouth-f .mouth-inner,
+.mouth-v .mouth-inner {
+  width: 32px;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.mouth-th .mouth-inner {
+  width: 30px;
+  height: 5px;
+  border-radius: 2px;
+}
+
+.mouth-s .mouth-inner,
+.mouth-z .mouth-inner {
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.mouth-sh .mouth-inner,
+.mouth-zh .mouth-inner {
+  width: 18px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.mouth-n .mouth-inner,
+.mouth-l .mouth-inner {
+  width: 26px;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.mouth-r .mouth-inner {
+  width: 22px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.mouth-w .mouth-inner {
+  width: 16px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.mouth-y .mouth-inner {
+  width: 24px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.mouth-h .mouth-inner {
+  width: 28px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+/* Speaking Animation */
+.avatar-mouth.speaking {
+  animation: mouth-movement 0.1s infinite alternate;
+}
+
+@keyframes mouth-movement {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* Listening Indicator */
+.listening-indicator {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  align-items: end;
+}
+
+.sound-wave {
+  width: 4px;
+  background: #007bff;
+  border-radius: 2px;
+  animation: sound-wave-animation 1s infinite;
+}
+
+.sound-wave:nth-child(1) {
+  height: 15px;
+  animation-delay: 0s;
+}
+
+.sound-wave:nth-child(2) {
+  height: 25px;
+  animation-delay: 0.2s;
+}
+
+.sound-wave:nth-child(3) {
+  height: 20px;
+  animation-delay: 0.4s;
+}
+
+@keyframes sound-wave-animation {
+  0%, 100% { height: 5px; opacity: 0.3; }
+  50% { height: 25px; opacity: 1; }
+}
+
+/* Gentle Pulse Animation */
+@keyframes gentle-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .avatar-container {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .avatar-face {
+    width: 120px;
+    height: 140px;
+  }
+  
+  .avatar-eye {
+    width: 16px;
+    height: 20px;
+  }
+  
+  .avatar-eye-left {
+    left: 28px;
+  }
+  
+  .avatar-eye-right {
+    right: 28px;
+  }
+  
+  .avatar-pupil {
+    width: 10px;
+    height: 10px;
+  }
+}
