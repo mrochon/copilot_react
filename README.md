@@ -121,6 +121,24 @@ For avatar lip-sync and text-to-speech features:
 
 **Note**: If Azure Speech Service is not configured, the avatar will still display but without voice and lip-sync.
 
+### 6. Avatar Photo Setup (Optional)
+
+To use a real human face for the avatar:
+
+1. Add your photo to `public/avatars/` (for example `public/avatars/agent.jpg`)
+2. Update the `.env` file with the photo path and optional mouth placement tweaks:
+   ```env
+   REACT_APP_AVATAR_IMAGE_URL=/avatars/agent.jpg
+   REACT_APP_AVATAR_MOUTH_TOP=68%
+   REACT_APP_AVATAR_MOUTH_LEFT=50%
+   REACT_APP_AVATAR_MOUTH_WIDTH=24%
+   REACT_APP_AVATAR_MOUTH_HEIGHT=14%
+   ```
+3. Adjust the mouth placement values to align the lip-sync overlay with your photo
+
+The mouth values accept any CSS unit (e.g., `%`, `px`) and control the overlay's
+position and size relative to the image.
+
 ## Running the Application
 
 ### Development Mode
@@ -244,6 +262,11 @@ The avatar uses Azure Speech Service's viseme data to provide accurate lip synch
 - **Listening state**: Visual indicator when processing user input
 - **Speaking animation**: Gentle movement during speech
 - **Responsive design**: Scales appropriately on different screen sizes
+
+### Real Photo Support
+- Drop in any JPEG/PNG headshot to immediately personalize the avatar
+- Configurable mouth overlay to match your subject's facial geometry
+- Reverts to the stylised fallback if no photo is supplied
 
 ### Testing and Development
 

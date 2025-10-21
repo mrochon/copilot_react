@@ -29,6 +29,69 @@
   border: 3px solid #e8a798;
 }
 
+.avatar-face-photo {
+  width: 180px;
+  height: 180px;
+  background: transparent;
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  overflow: visible;
+  padding: 0;
+}
+
+.avatar-photo-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: inset 0 -20px 35px rgba(0, 0, 0, 0.25);
+}
+
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-face-photo .avatar-eye,
+.avatar-face-photo .avatar-pupil {
+  display: none;
+}
+
+.avatar-mouth-overlay {
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  width: 22%;
+  height: 14%;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, opacity 0.2s ease;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.35));
+}
+
+.avatar-mouth-overlay-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(140, 40, 40, 0.85);
+  box-shadow: inset 0 3px 4px rgba(255, 255, 255, 0.35);
+  opacity: 0.95;
+  transition: background 0.12s ease;
+}
+
+.avatar-mouth-overlay.speaking .avatar-mouth-overlay-inner {
+  background: rgba(150, 30, 30, 0.92);
+  box-shadow: inset 0 4px 6px rgba(255, 255, 255, 0.4);
+}
+
 /* Eyes */
 .avatar-eye {
   position: absolute;
@@ -283,6 +346,16 @@
   .avatar-face {
     width: 120px;
     height: 140px;
+  }
+
+  .avatar-face-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 18px;
+  }
+  
+  .avatar-photo-wrapper {
+    border-radius: 18px;
   }
   
   .avatar-eye {

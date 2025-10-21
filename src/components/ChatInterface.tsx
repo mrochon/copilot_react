@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useCopilotStudio, ChatMessage } from '../CopilotStudioService';
 import { MessageList } from './MessageList';
@@ -21,6 +21,15 @@ export const ChatInterface: React.FC = () => {
     speechRegion: process.env.REACT_APP_SPEECH_REGION || 'eastus',
     voiceName: process.env.REACT_APP_SPEECH_VOICE || 'en-US-JennyNeural'
   });
+
+  const avatarImageSrc = process.env.REACT_APP_AVATAR_IMAGE_URL;
+
+  const avatarMouthConfig = useMemo(() => ({
+    top: process.env.REACT_APP_AVATAR_MOUTH_TOP || '68%',
+    left: process.env.REACT_APP_AVATAR_MOUTH_LEFT || '50%',
+    width: process.env.REACT_APP_AVATAR_MOUTH_WIDTH || '24%',
+    height: process.env.REACT_APP_AVATAR_MOUTH_HEIGHT || '14%',
+  }), []);
 
   useEffect(() => {
     // Add initial welcome message
@@ -123,6 +132,8 @@ export const ChatInterface: React.FC = () => {
           isSpeaking={speechAvatar.isSpeaking}
           visemeData={speechAvatar.visemeData}
           audioBuffer={speechAvatar.audioBuffer || undefined}
+          imageSrc={avatarImageSrc || undefined}
+          mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
           onSpeechStart={speechAvatar.handleSpeechStart}
           onSpeechEnd={speechAvatar.handleSpeechEnd}
         />
