@@ -128,8 +128,8 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.08s ease, opacity 0.2s ease;
-  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.4));
-  mix-blend-mode: multiply;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.35));
+  z-index: 12;
 }
 
 .avatar-mouth-overlay-inner {

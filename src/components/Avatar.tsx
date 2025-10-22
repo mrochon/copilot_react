@@ -114,8 +114,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [currentMouthShape, setCurrentMouthShape] = useState<string>('neutral');
   const [eyeBlinkState, setEyeBlinkState] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const animationRef = useRef<number | undefined>(undefined);
-  const startTimeRef = useRef<number>(0);
+  const animationRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
   const mergedMouthConfig = useMemo(() => ({
@@ -136,16 +135,19 @@ export const Avatar: React.FC<AvatarProps> = ({
       left: mergedMouthConfig.left,
       width: mergedMouthConfig.width,
       height: mergedMouthConfig.height,
-      transform: `translate(-50%, -50%) scale(${transform.scaleX}, ${transform.scaleY})${rotate}`,
+      transform: `translate(-50%, -50%) translateZ(40px) scale(${transform.scaleX}, ${transform.scaleY})${rotate}`,
+      zIndex: 10,
     };
   }, [currentMouthShape, mergedMouthConfig, imageSrc]);
 
   const animateVisemes = useCallback(() => {
-    if (!visemeData.length) {
+    const audioElement = audioRef.current;
+    if (!audioElement || !visemeData.length) {
+      animationRef.current = null;
       return;
     }
 
-    const elapsed = performance.now() - startTimeRef.current;
+    const elapsed = audioElement.currentTime * 1000;
     let activeViseme = visemeData[visemeData.length - 1];
 
     for (let index = 0; index < visemeData.length; index += 1) {
@@ -189,10 +191,10 @@ export const Avatar: React.FC<AvatarProps> = ({
       await audioRef.current.play();
 
       if (visemeData.length > 0) {
-        if (animationRef.current) {
+        if (animationRef.current !== null) {
           cancelAnimationFrame(animationRef.current);
+          animationRef.current = null;
         }
-        startTimeRef.current = performance.now();
         animationRef.current = requestAnimationFrame(animateVisemes);
       } else {
         setCurrentMouthShape('aa');
@@ -222,9 +224,9 @@ export const Avatar: React.FC<AvatarProps> = ({
 
     const handleEnded = () => {
       setCurrentMouthShape('neutral');
-      if (animationRef.current) {
+      if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
-        animationRef.current = undefined;
+        animationRef.current = null;
       }
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
@@ -256,8 +258,9 @@ export const Avatar: React.FC<AvatarProps> = ({
   }, [isSpeaking]);
 
   useEffect(() => () => {
-    if (animationRef.current) {
+    if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
     }
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
