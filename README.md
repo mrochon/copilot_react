@@ -1,14 +1,14 @@
 # Copilot Studio React Application
 
-A React application that provides a front-end UI for Microsoft Copilot Studio agents using MSAL for authentication.
+A React application that provides a front-end UI for a Microsoft Copilot Studio agent.
 
 ## Features
 
 - 🔐 Microsoft Azure AD authentication using MSAL
 - 💬 Real-time chat interface with Copilot Studio agents
-- 🎭 **NEW**: Human-like avatar with lip-sync animation
-- 🔊 **NEW**: Azure Speech Service integration for text-to-speech
-- 👄 **NEW**: Real-time viseme-based lip synchronization
+- 🎭 Human-like (eh!) avatar with lip-sync animation
+- 🔊 Azure Speech Service integration for text-to-speech
+- 👄 Real-time viseme-based lip synchronization
 - 📱 Responsive design for desktop and mobile
 - ⚡ TypeScript support for better development experience
 - 🎨 Modern UI with Microsoft Fluent Design principles
