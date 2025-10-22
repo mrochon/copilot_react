@@ -283,9 +283,16 @@ export const Avatar: React.FC<AvatarProps> = ({
     <>
       <div className="avatar-photo-wrapper">
         {imageSrc && <img src={imageSrc} alt="AI assistant" className="avatar-photo" />}
+        <div className="avatar-photo-depth" />
+        <div className="avatar-photo-highlight" />
+        <div className="avatar-photo-shadow" />
+        <div className="avatar-photo-glow" />
+        <div className="avatar-photo-outline" />
+        <div className="avatar-photo-gloss" />
       </div>
       <div className={`avatar-mouth-overlay ${isSpeaking ? 'speaking' : ''}`} style={photoMouthStyle}>
         <div className="avatar-mouth-overlay-inner" />
+        <div className="avatar-mouth-overlay-highlight" />
       </div>
     </>
   );
