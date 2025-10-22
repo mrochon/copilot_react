@@ -116,6 +116,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const lastProcessedBufferRef = useRef<ArrayBuffer | null>(null);
 
   const mergedMouthConfig = useMemo(() => ({
     top: mouthConfig?.top ?? DEFAULT_MOUTH_CONFIG.top,
@@ -211,9 +212,17 @@ export const Avatar: React.FC<AvatarProps> = ({
   }, [audioBuffer, visemeData, onSpeechStart, onSpeechEnd, animateVisemes]);
 
   useEffect(() => {
-    if (audioBuffer) {
-      playAudioWithVisemes();
+    if (!audioBuffer) {
+      lastProcessedBufferRef.current = null;
+      return;
     }
+
+    if (lastProcessedBufferRef.current === audioBuffer) {
+      return;
+    }
+
+    lastProcessedBufferRef.current = audioBuffer;
+    playAudioWithVisemes();
   }, [audioBuffer, playAudioWithVisemes]);
 
   useEffect(() => {

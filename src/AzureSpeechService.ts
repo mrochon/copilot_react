@@ -11,11 +11,23 @@ export interface VisemeData {
   visemeId: number;
 }
 
+class SilentPushAudioOutputStreamCallback extends SpeechSDK.PushAudioOutputStreamCallback {
+  write(): void {
+    // Intentionally discard synthesized audio chunks to keep playback under our control.
+  }
+
+  close(): void {
+    // Nothing to release for the silent stream.
+  }
+}
+
 export class AzureSpeechService {
   private speechConfig: SpeechSDK.SpeechConfig | null = null;
   private synthesizer: SpeechSDK.SpeechSynthesizer | null = null;
   private subscriptionKey: string | null = null;
   private region: string | null = null;
+  private silentAudioStream: SpeechSDK.PushAudioOutputStream | null = null;
+  private silentAudioCallback: SpeechSDK.PushAudioOutputStreamCallback | null = null;
 
   initialize(config: SpeechConfig): void {
     try {
@@ -26,9 +38,18 @@ export class AzureSpeechService {
       
       // Configure for high quality audio
       this.speechConfig.speechSynthesisOutputFormat = SpeechSDK.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3;
-      
-      // Create synthesizer with no audio output (we'll handle audio ourselves)
-      this.synthesizer = new SpeechSDK.SpeechSynthesizer(this.speechConfig, undefined);
+
+      if (this.silentAudioStream) {
+        this.silentAudioStream.close();
+      }
+
+      this.silentAudioCallback = new SilentPushAudioOutputStreamCallback();
+      const silentStream = SpeechSDK.PushAudioOutputStream.create(this.silentAudioCallback);
+      this.silentAudioStream = silentStream;
+      const audioConfig = SpeechSDK.AudioConfig.fromStreamOutput(silentStream);
+
+      // Create synthesizer with a silent audio destination so we control playback
+      this.synthesizer = new SpeechSDK.SpeechSynthesizer(this.speechConfig, audioConfig);
       
       console.log('Azure Speech Service initialized successfully');
     } catch (error) {
@@ -154,6 +175,11 @@ export class AzureSpeechService {
     this.speechConfig = null;
     this.subscriptionKey = null;
     this.region = null;
+    if (this.silentAudioStream) {
+      this.silentAudioStream.close();
+      this.silentAudioStream = null;
+    }
+    this.silentAudioCallback = null;
   }
 }
 
