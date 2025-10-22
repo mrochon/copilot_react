@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useCopilotStudio, ChatMessage } from '../CopilotStudioService';
 import { MessageList } from './MessageList';
@@ -6,6 +6,7 @@ import { MessageInput } from './MessageInput';
 import { Avatar } from './Avatar';
 import { useAuth } from '../AuthContext';
 import { useSpeechAvatar } from '../hooks/useSpeechAvatar';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -22,6 +23,19 @@ export const ChatInterface: React.FC = () => {
     voiceName: process.env.REACT_APP_SPEECH_VOICE || 'en-US-JennyNeural'
   });
 
+  const {
+    isInitialized: isSpeechInitialized,
+    isSpeaking: isAvatarSpeaking,
+    isLoading: isSpeechLoading,
+    error: speechAvatarError,
+    visemeData,
+    audioBuffer,
+    speakWithLipSync,
+    handleSpeechStart,
+    handleSpeechEnd,
+    clearError: clearSpeechAvatarError
+  } = speechAvatar;
+
   const avatarImageSrc = process.env.REACT_APP_AVATAR_IMAGE_URL;
 
   const avatarMouthConfig = useMemo(() => ({
@@ -30,6 +44,35 @@ export const ChatInterface: React.FC = () => {
     width: process.env.REACT_APP_AVATAR_MOUTH_WIDTH || '24%',
     height: process.env.REACT_APP_AVATAR_MOUTH_HEIGHT || '14%',
   }), []);
+
+  const recognitionLanguage = useMemo(() => {
+    const explicitLanguage = process.env.REACT_APP_SPEECH_RECOGNITION_LANGUAGE;
+    if (explicitLanguage && explicitLanguage.trim()) {
+      return explicitLanguage.trim();
+    }
+
+    const voiceName = process.env.REACT_APP_SPEECH_VOICE;
+    if (voiceName) {
+      const localeMatch = voiceName.match(/^[a-z]{2}-[A-Z]{2}/);
+      if (localeMatch) {
+        return localeMatch[0];
+      }
+    }
+
+    return 'en-US';
+  }, []);
+
+  const {
+    isRecording: isVoiceRecording,
+    interimResult: voiceInterimResult,
+    finalResult: voiceFinalResult,
+    error: voiceError,
+    startRecording,
+    stopRecording,
+    reset: resetVoiceRecognition
+  } = useSpeechRecognition({ language: recognitionLanguage });
+
+  const [inputResetToken, setInputResetToken] = useState(0);
 
   useEffect(() => {
     // Add initial welcome message
@@ -50,7 +93,7 @@ export const ChatInterface: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string) => {
     const userMessage: ChatMessage = {
       id: uuidv4(),
       text,
@@ -75,9 +118,9 @@ export const ChatInterface: React.FC = () => {
       setMessages(prev => [...prev, botMessage]);
 
       // Speak the response with lip-sync if speech service is available
-      if (speechAvatar.isInitialized) {
+      if (isSpeechInitialized) {
         try {
-          await speechAvatar.speakWithLipSync(response);
+          await speakWithLipSync(response);
         } catch (speechError) {
           console.warn('Speech synthesis failed, continuing without audio:', speechError);
         }
@@ -95,9 +138,9 @@ export const ChatInterface: React.FC = () => {
       setMessages(prev => [...prev, errorMessage]);
 
       // Speak error message
-      if (speechAvatar.isInitialized) {
+      if (isSpeechInitialized) {
         try {
-          await speechAvatar.speakWithLipSync(errorMessage.text);
+          await speakWithLipSync(errorMessage.text);
         } catch (speechError) {
           console.warn('Speech synthesis failed for error message:', speechError);
         }
@@ -106,7 +149,25 @@ export const ChatInterface: React.FC = () => {
       setIsTyping(false);
       setIsListening(false); // Hide listening state
     }
-  };
+  }, [isSpeechInitialized, speakWithLipSync, sendMessage]);
+
+  useEffect(() => {
+    if (!isVoiceRecording && voiceFinalResult.trim()) {
+      const recognizedText = voiceFinalResult.trim();
+      void handleSendMessage(recognizedText);
+      resetVoiceRecognition();
+      setInputResetToken(prev => prev + 1);
+    }
+  }, [handleSendMessage, isVoiceRecording, resetVoiceRecognition, voiceFinalResult]);
+
+  const handleStartVoice = useCallback(() => {
+    resetVoiceRecognition();
+    void startRecording();
+  }, [resetVoiceRecognition, startRecording]);
+
+  const handleStopVoice = useCallback(() => {
+    void stopRecording();
+  }, [stopRecording]);
 
   const handleLogout = async () => {
     try {
@@ -129,28 +190,28 @@ export const ChatInterface: React.FC = () => {
       <div className="avatar-section">
         <Avatar
           isListening={isListening}
-          isSpeaking={speechAvatar.isSpeaking}
-          visemeData={speechAvatar.visemeData}
-          audioBuffer={speechAvatar.audioBuffer || undefined}
+          isSpeaking={isAvatarSpeaking}
+          visemeData={visemeData}
+          audioBuffer={audioBuffer || undefined}
           imageSrc={avatarImageSrc || undefined}
           mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
-          onSpeechStart={speechAvatar.handleSpeechStart}
-          onSpeechEnd={speechAvatar.handleSpeechEnd}
+          onSpeechStart={handleSpeechStart}
+          onSpeechEnd={handleSpeechEnd}
         />
         
         {/* Speech Status */}
         <div className="speech-status">
-          {speechAvatar.error && (
-            <div className="speech-error" onClick={speechAvatar.clearError}>
-              <small>⚠️ {speechAvatar.error}</small>
+          {speechAvatarError && (
+            <div className="speech-error" onClick={clearSpeechAvatarError}>
+              <small>⚠️ {speechAvatarError}</small>
             </div>
           )}
-          {speechAvatar.isLoading && (
+          {isSpeechLoading && (
             <div className="speech-loading">
               <small>🔊 Preparing speech...</small>
             </div>
           )}
-          {!speechAvatar.isInitialized && !speechAvatar.error && (
+          {!isSpeechInitialized && !speechAvatarError && (
             <div className="speech-info">
               <small>💡 Configure Azure Speech Service for voice responses</small>
             </div>
@@ -163,7 +224,17 @@ export const ChatInterface: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      <MessageInput onSendMessage={handleSendMessage} disabled={isTyping || speechAvatar.isSpeaking} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        disabled={isTyping || isAvatarSpeaking}
+        onStartVoice={isSpeechInitialized ? handleStartVoice : undefined}
+        onStopVoice={isSpeechInitialized ? handleStopVoice : undefined}
+        isVoiceRecording={isVoiceRecording}
+        voiceDraft={voiceInterimResult || voiceFinalResult || undefined}
+        voiceError={voiceError}
+        voiceSupported={isSpeechInitialized}
+        resetToken={inputResetToken}
+      />
     </div>
   );
 };

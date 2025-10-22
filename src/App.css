@@ -373,6 +373,37 @@ body {
   color: #a19f9d;
 }
 
+.voice-button {
+  background-color: white;
+  color: #0078d4;
+  border: 1px solid #0078d4;
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.voice-button:hover:not(:disabled) {
+  background-color: #eff6fc;
+}
+
+.voice-button.recording {
+  background-color: #d13438;
+  border-color: #d13438;
+  color: white;
+  animation: gentle-pulse 1.5s infinite;
+}
+
+.voice-button:disabled {
+  background-color: #f3f2f1;
+  color: #a19f9d;
+  border-color: #d2d0ce;
+  cursor: not-allowed;
+}
+
 .send-button {
   background-color: #0078d4;
   color: white;
@@ -392,6 +423,12 @@ body {
 .send-button:disabled {
   background-color: #a19f9d;
   cursor: not-allowed;
+}
+
+.voice-feedback {
+  margin-top: 0.5rem;
+  color: #a4262c;
+  font-size: 0.75rem;
 }
 
 /* Responsive Design */

@@ -14,9 +14,13 @@ export interface VisemeData {
 export class AzureSpeechService {
   private speechConfig: SpeechSDK.SpeechConfig | null = null;
   private synthesizer: SpeechSDK.SpeechSynthesizer | null = null;
+  private subscriptionKey: string | null = null;
+  private region: string | null = null;
 
   initialize(config: SpeechConfig): void {
     try {
+      this.subscriptionKey = config.subscriptionKey;
+      this.region = config.region;
       this.speechConfig = SpeechSDK.SpeechConfig.fromSubscription(config.subscriptionKey, config.region);
       this.speechConfig.speechSynthesisVoiceName = config.voiceName;
       
@@ -94,6 +98,20 @@ export class AzureSpeechService {
     });
   }
 
+  createSpeechRecognizer(options?: { language?: string }): SpeechSDK.SpeechRecognizer {
+    if (!this.subscriptionKey || !this.region) {
+      throw new Error('Speech service not initialized');
+    }
+
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(this.subscriptionKey, this.region);
+    if (options?.language) {
+      speechConfig.speechRecognitionLanguage = options.language;
+    }
+
+    const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+    return new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+  }
+
   async synthesizeSpeechOnly(text: string): Promise<ArrayBuffer> {
     if (!this.synthesizer) {
       throw new Error('Speech service not initialized');
@@ -134,6 +152,8 @@ export class AzureSpeechService {
       this.synthesizer = null;
     }
     this.speechConfig = null;
+    this.subscriptionKey = null;
+    this.region = null;
   }
 }
 
