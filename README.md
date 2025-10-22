@@ -1,4 +1,4 @@
-# Copilot Studio React Application
+# Copilot Studio agent custom front-end
 
 A React application that provides a front-end UI for a Microsoft Copilot Studio agent.
 
