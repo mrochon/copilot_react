@@ -20,8 +20,8 @@ Before running this application, you need:
 
 1. **Azure AD Application Registration**
    - Create an application registration in Azure AD
-   - Configure redirect URIs for your application
-   - Note the Client ID and Tenant ID
+   - Configure redirect URIs for your application and [API permissions](https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-integrate-web-or-native-app-m365-agents-sdk?tabs=dotnet#configure-your-app-registration-for-user-interactive-sign-in)
+   - [See here for more detail](https://learn.microsoft.com/en-us/power-platform/admin/programmability-authentication-v2?tabs=powershell#step-2-configure-api-permissions)
 
 2. **Copilot Studio Agent**
    - Create and publish an agent in Microsoft Copilot Studio

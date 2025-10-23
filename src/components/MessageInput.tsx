@@ -1,4 +1,4 @@
-import React, { useState, KeyboardEvent, useEffect } from 'react';
+import React, { useState, KeyboardEvent, useEffect, PointerEvent } from 'react';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -53,9 +53,64 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const textareaDisabled = disabled || isVoiceRecording;
-  const voiceButtonDisabled = (!voiceSupported || disabled) && !isVoiceRecording;
+  const voiceButtonDisabled = !voiceSupported || disabled;
 
   const renderVoiceButton = Boolean(onStartVoice && onStopVoice);
+
+  const handleVoicePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (voiceButtonDisabled || !onStartVoice || isVoiceRecording) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onStartVoice();
+  };
+
+  const handleVoicePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!onStopVoice) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    onStopVoice();
+  };
+
+  const handleVoicePointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!onStopVoice) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    onStopVoice();
+  };
+
+  const handleVoiceKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!onStartVoice || voiceButtonDisabled) {
+      return;
+    }
+
+    if ((event.key === ' ' || event.key === 'Enter') && !isVoiceRecording) {
+      event.preventDefault();
+      onStartVoice();
+    }
+  };
+
+  const handleVoiceKeyUp = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!onStopVoice) {
+      return;
+    }
+
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      onStopVoice();
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="message-input-form">
@@ -72,11 +127,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {renderVoiceButton && (
           <button
             type="button"
-            onClick={isVoiceRecording ? onStopVoice : onStartVoice}
+            onPointerDown={handleVoicePointerDown}
+            onPointerUp={handleVoicePointerUp}
+            onPointerCancel={handleVoicePointerCancel}
+            onKeyDown={handleVoiceKeyDown}
+            onKeyUp={handleVoiceKeyUp}
             className={`voice-button${isVoiceRecording ? ' recording' : ''}`}
             disabled={voiceButtonDisabled}
+            aria-pressed={isVoiceRecording}
           >
-            {isVoiceRecording ? 'Listening...' : 'Speak'}
+            {isVoiceRecording ? 'Release to send' : 'Hold to speak'}
           </button>
         )}
         <button
