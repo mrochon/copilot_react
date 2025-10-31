@@ -88,9 +88,19 @@ class CopilotStudioService {
 
     try {
       const activities = await this.client.askQuestionAsync(message, this.conversationId);
-      
+      console.log('Received activities from Copilot Studio:', activities);
       // Get the text from the last activity response
       const lastActivity = activities[activities.length - 1];
+      
+      // Check if attachments exist and have the expected structure
+      if (lastActivity?.attachments && Array.isArray(lastActivity.attachments) && lastActivity.attachments.length > 0) {
+        const attachment = lastActivity.attachments[0] as any;
+        if (attachment?.content?.body && Array.isArray(attachment.content.body) && attachment.content.body.length > 0) {
+          const text = attachment.content.body[0].text;
+          return text;
+        }
+      }
+      
       return lastActivity?.text || 'No response received';
     } catch (error) {
       console.error('Error sending message:', error);

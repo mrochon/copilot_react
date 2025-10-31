@@ -6,6 +6,7 @@ export class MockCopilotStudioClient {
   private accessToken: string;
   private conversationId: string = '';
   private messageCount: number = 0;
+  private lastResponse: string = 'Hello';
 
   constructor(connectionSettings: ConnectionSettings, accessToken: string) {
     this.connectionSettings = connectionSettings;
@@ -57,6 +58,7 @@ export class MockCopilotStudioClient {
     
     // Generate mock responses based on the question
     const response = this.generateMockResponse(question);
+    this.lastResponse = response;
     
     const responseActivity = {
       type: 'message',
@@ -89,6 +91,8 @@ export class MockCopilotStudioClient {
       return 'I\'m a mock agent, so I can\'t check real weather data. But I can tell you it\'s always sunny in the world of testing! ☀️';
     } else if (lowerQuestion.includes('time')) {
       return `The current time is ${new Date().toLocaleTimeString()}. This is from the mock client.`;
+    } else if (lowerQuestion.includes('repeat')) {
+      return this.lastResponse;      
     } else if (lowerQuestion.includes('bye') || lowerQuestion.includes('goodbye')) {
       return 'Goodbye! Thanks for testing with the mock Copilot Studio client.';
     } else if (lowerQuestion.includes('error') || lowerQuestion.includes('test error')) {
