@@ -31,6 +31,7 @@ const AppContent: React.FC = () => {
         tenantId: process.env.REACT_APP_COPILOT_TENANT_ID,
         cloud: process.env.REACT_APP_COPILOT_CLOUD,
         agentType: process.env.REACT_APP_COPILOT_AGENT_TYPE,
+        directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
       });
 
       const config: CopilotStudioConfig = {
