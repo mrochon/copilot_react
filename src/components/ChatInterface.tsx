@@ -83,7 +83,14 @@ export const ChatInterface: React.FC = () => {
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
-  }, []);
+
+    // Speak the welcome message when speech service is initialized
+    if (isSpeechInitialized) {
+      speakWithLipSync(welcomeMessage.text).catch((error) => {
+        console.warn('Failed to speak welcome message:', error);
+      });
+    }
+  }, [isSpeechInitialized, speakWithLipSync]);
 
   useEffect(() => {
     scrollToBottom();
