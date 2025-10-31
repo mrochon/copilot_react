@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useCopilotStudio, ChatMessage } from '../CopilotStudioService';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
-import { Avatar } from './Avatar';
+import { Avatar, AvatarRef } from './Avatar';
 import { useAuth } from '../AuthContext';
 import { useSpeechAvatar } from '../hooks/useSpeechAvatar';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
@@ -15,6 +15,7 @@ export const ChatInterface: React.FC = () => {
   const { sendMessage } = useCopilotStudio();
   const { logout } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<AvatarRef>(null);
 
   // Initialize speech avatar
   const speechAvatar = useSpeechAvatar({
@@ -176,6 +177,10 @@ export const ChatInterface: React.FC = () => {
     void stopRecording();
   }, [stopRecording]);
 
+  const handleStopSpeech = useCallback(() => {
+    avatarRef.current?.stopSpeech();
+  }, []);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -195,16 +200,28 @@ export const ChatInterface: React.FC = () => {
 
       {/* Avatar Section */}
       <div className="avatar-section">
-        <Avatar
-          isListening={isListening}
-          isSpeaking={isAvatarSpeaking}
-          visemeData={visemeData}
-          audioBuffer={audioBuffer || undefined}
-          imageSrc={avatarImageSrc || undefined}
-          mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
-          onSpeechStart={handleSpeechStart}
-          onSpeechEnd={handleSpeechEnd}
-        />
+        <div className="avatar-controls">
+          <Avatar
+            ref={avatarRef}
+            isListening={isListening}
+            isSpeaking={isAvatarSpeaking}
+            visemeData={visemeData}
+            audioBuffer={audioBuffer || undefined}
+            imageSrc={avatarImageSrc || undefined}
+            mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
+            onSpeechStart={handleSpeechStart}
+            onSpeechEnd={handleSpeechEnd}
+          />
+          {isAvatarSpeaking && (
+            <button 
+              className="stop-speech-button"
+              onClick={handleStopSpeech}
+              aria-label="Stop speech"
+            >
+              🔇 Stop
+            </button>
+          )}
+        </div>
         
         {/* Speech Status */}
         <div className="speech-status">

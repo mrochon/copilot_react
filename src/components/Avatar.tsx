@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import type { CSSProperties } from 'react';
 import { VisemeData } from '../AzureSpeechService';
 import './Avatar.css';
@@ -17,8 +17,13 @@ interface AvatarProps {
   audioBuffer?: ArrayBuffer;
   onSpeechStart?: () => void;
   onSpeechEnd?: () => void;
+  onStopSpeech?: () => void;
   imageSrc?: string;
   mouthConfig?: MouthConfig;
+}
+
+export interface AvatarRef {
+  stopSpeech: () => void;
 }
 
 type PhotoMouthTransform = {
@@ -101,16 +106,17 @@ const DEFAULT_MOUTH_CONFIG: Required<MouthConfig> = {
   height: '14%',
 };
 
-export const Avatar: React.FC<AvatarProps> = ({
+export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
   isListening = false,
   isSpeaking = false,
   visemeData = [],
   audioBuffer,
   onSpeechStart,
   onSpeechEnd,
+  onStopSpeech,
   imageSrc,
   mouthConfig,
-}) => {
+}, ref) => {
   const [currentMouthShape, setCurrentMouthShape] = useState<string>('neutral');
   const [eyeBlinkState, setEyeBlinkState] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -210,6 +216,33 @@ export const Avatar: React.FC<AvatarProps> = ({
       }
     }
   }, [audioBuffer, visemeData, onSpeechStart, onSpeechEnd, animateVisemes]);
+
+  const stopSpeech = useCallback(() => {
+    const audioElement = audioRef.current;
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    }
+
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+
+    setCurrentMouthShape('neutral');
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    onSpeechEnd?.();
+    onStopSpeech?.();
+  }, [onSpeechEnd, onStopSpeech]);
+
+  useImperativeHandle(ref, () => ({
+    stopSpeech
+  }), [stopSpeech]);
 
   useEffect(() => {
     if (!audioBuffer) {
@@ -326,4 +359,6 @@ export const Avatar: React.FC<AvatarProps> = ({
       <audio ref={audioRef} style={{ display: 'none' }} />
     </div>
   );
-};
+});
+
+Avatar.displayName = 'Avatar';

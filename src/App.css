@@ -193,6 +193,32 @@ body {
   justify-content: center;
 }
 
+.avatar-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.stop-speech-button {
+  background-color: #d13438;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 4px rgba(209, 52, 56, 0.3);
+}
+
+.stop-speech-button:hover {
+  background-color: #b02a2f;
+  box-shadow: 0 3px 6px rgba(209, 52, 56, 0.4);
+}
+
 .speech-status {
   margin-top: 1rem;
   text-align: center;
