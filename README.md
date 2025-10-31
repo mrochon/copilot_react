@@ -21,8 +21,8 @@ Before running this application, you need:
 
 1. **Azure AD Application Registration**
    - Create an application registration in Azure AD
-   - Configure redirect URIs for your application
-   - Configure [API permissions](https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-integrate-web-or-native-app-m365-agents-sdk?tabs=dotnet#configure-your-app-registration-for-user-interactive-sign-in) (`CopilotStudio.Copilots.Invoke`). See below.
+   - Configure redirect URIs for the React client
+   - Grant it *user_impersonation* permission to *Power Platform API* (may also show as: *Dynamics CRM*) and possibly also *mcp.tools* permission to Dataverse MCP?!?!. Rather confusing, read this as well: [API permissions](https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-integrate-web-or-native-app-m365-agents-sdk?tabs=dotnet#configure-your-app-registration-for-user-interactive-sign-in) (`CopilotStudio.Copilots.Invoke`). See below.
 
 **Note:** Seems like Github Copilot generated code asks for and gets a token to 'https://api.powerplatform.com'. Its name under *API my organization uses* is *Dataverse* (not PowerPlatform API). Its appid is *00000007-0000-0000-c000-000000000000*. Found [some documentation](https://learn.microsoft.com/en-us/power-platform/admin/programmability-authentication-v2?tabs=powershell#step-2-configure-api-permissions) saying I need to add app with id=8578e004-a5c6-46e7-913e-12f58912df43 as Service Principal and grant user_impersonation. That returns an access token with aud=https://api.gov.powerplatform.microsoft.us/ (!!).
 
@@ -30,9 +30,8 @@ Before running this application, you need:
 2. **Copilot Studio Agent**
    - Create and publish an agent in Microsoft Copilot Studio
    - Enable Microsoft authentication
-   - ???
+   - Enable publishing to Native Apps - use the displayed Connect Url in React client configuration
    - Get the Environment ID and Agent Schema Name from Metadata
-   - Configure API permissions for 
    
 
 3. **Azure Speech Service (Optional for Avatar Features)**
