@@ -53,10 +53,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       console.log('Starting logout process...');
-      await instance.logoutPopup();
+      
+      // Get the current account to logout
+      const currentAccount = accounts[0];
+      
+      if (currentAccount) {
+        console.log('Logging out account:', currentAccount.username);
+        
+        // Logout with specific account to ensure proper token cleanup
+        await instance.logoutPopup({
+          account: currentAccount,
+          postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin
+        });
+      } else {
+        // Fallback to generic logout if no account found
+        await instance.logoutPopup();
+      }
+      
+      // Note: logoutPopup with specific account should handle token cleanup
+      // MSAL will clear tokens for the logged out account automatically
+      
       setUser(null);
+      console.log('Logout completed successfully');
     } catch (error) {
       console.error('Logout error:', error);
+      // Even if logout fails, clear local state
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -108,28 +130,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Access token acquired successfully');
       return response.accessToken;
     } catch (error) {
-      console.error('Error getting access token:', error);
+      console.error('Error getting access token silently:', error);
+      
+      // Check if this is a consent required error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isConsentRequired = errorMessage.includes('consent_required') || 
+                                errorMessage.includes('interaction_required') ||
+                                errorMessage.includes('login_required');
+      
       try {
         // Try to get token interactively if silent acquisition fails
+        let tokenScope: string;
+        if (config) {
+          try {
+            tokenScope = CopilotStudioClient.scopeFromSettings({
+              environmentId: config.environmentId,
+              agentIdentifier: config.agentIdentifier,
+              appClientId: config.appClientId,
+              tenantId: config.tenantId,
+              cloud: config.cloud,
+              directConnectUrl: config.directConnectUrl,
+              authority: config.authority || 'https://login.microsoftonline.com',
+            } as ConnectionSettings);
+          } catch {
+            tokenScope = 'https://api.powerplatform.com/.default';
+          }
+        } else {
+          tokenScope = 'https://api.powerplatform.com/.default';
+        }
+        
         const tokenRequest = {
-          scopes: [config ? CopilotStudioClient.scopeFromSettings({
-            environmentId: config.environmentId,
-            agentIdentifier: config.agentIdentifier,
-            appClientId: config.appClientId,
-            tenantId: config.tenantId,
-            cloud: config.cloud,
-            directConnectUrl: config.directConnectUrl,
-            authority: config.authority || 'https://login.microsoftonline.com',
-          } as ConnectionSettings) : 'https://api.powerplatform.com/.default'],
+          scopes: [tokenScope],
           account: accounts[0],
+          // Force consent prompt if consent is required
+          ...(isConsentRequired && { prompt: 'consent' as any }),
         };
-        console.log('Trying interactive token acquisition...');
+        
+        console.log('Trying interactive token acquisition with scope:', tokenScope);
+        if (isConsentRequired) {
+          console.log('Forcing consent prompt due to consent_required error');
+        }
+        
         const response = await instance.acquireTokenPopup(tokenRequest);
         console.log('Interactive token acquisition successful');
         return response.accessToken;
       } catch (interactiveError) {
         console.error('Interactive token acquisition failed:', interactiveError);
-        return null;
+        throw new Error('Failed to acquire access token. Please ensure you have the necessary permissions and try logging in again.');
       }
     }
   };

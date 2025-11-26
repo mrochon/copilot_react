@@ -9,9 +9,19 @@ import './App.css';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const { initializeCopilot, isInitialized } = useCopilotStudio();
+  const { initializeCopilot, isInitialized, resetService } = useCopilotStudio();
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  // Reset service when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('User logged out, resetting Copilot service');
+      resetService();
+      setCopilotError(null);
+      setCopilotLoading(false);
+    }
+  }, [isAuthenticated, resetService]);
 
   useEffect(() => {
     if (isAuthenticated && !isInitialized && !copilotLoading) {

@@ -104,6 +104,16 @@ class CopilotStudioService {
       return lastActivity?.text || 'No response received';
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Check if this is an authorization error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('permission') || 
+          errorMessage.includes('unauthorized') || 
+          errorMessage.includes('403') ||
+          errorMessage.includes('401')) {
+        throw new Error('Authorization error: The agent needs your permission to continue. Please refresh the page and grant the necessary permissions when prompted.');
+      }
+      
       throw error;
     }
   }
@@ -111,6 +121,13 @@ class CopilotStudioService {
   async endConversation(): Promise<void> {
     // The Copilot Studio client doesn't have an explicit end conversation method
     // We'll just reset our local state
+    this.conversationId = null;
+    this.client = null;
+  }
+
+  reset(): void {
+    // Force reset all service state (useful for logout)
+    console.log('Resetting Copilot Studio service');
     this.conversationId = null;
     this.client = null;
   }
@@ -155,10 +172,15 @@ export const useCopilotStudio = () => {
     await copilotService.endConversation();
   };
 
+  const resetService = (): void => {
+    copilotService.reset();
+  };
+
   return {
     initializeCopilot,
     sendMessage,
     endConversation,
+    resetService,
     isInitialized: copilotService.isInitialized(),
   };
 };

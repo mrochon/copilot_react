@@ -12,7 +12,7 @@ export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const { sendMessage } = useCopilotStudio();
+  const { sendMessage, resetService } = useCopilotStudio();
   const { logout } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<AvatarRef>(null);
@@ -183,6 +183,8 @@ export const ChatInterface: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      // Reset Copilot service before logout to clear any cached clients/tokens
+      resetService();
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
