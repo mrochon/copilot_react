@@ -81,14 +81,96 @@ class CopilotStudioService {
     }
   }
 
+  private isConsentCard(activity: any): boolean {
+    // Check if this activity contains a consent adaptive card
+    if (!activity?.attachments || !Array.isArray(activity.attachments) || activity.attachments.length === 0) {
+      return false;
+    }
+
+    const attachment = activity.attachments[0] as any;
+    if (!attachment?.content?.body || !Array.isArray(attachment.content.body)) {
+      return false;
+    }
+
+    // Look for the "Connect to continue" text block
+    const hasConnectText = attachment.content.body.some((item: any) => 
+      item.type === 'TextBlock' && 
+      item.text && 
+      item.text.includes('Agent needs your permission to continue')
+    );
+
+    if (!hasConnectText) {
+      return false;
+    }
+
+    // Look for Allow and Cancel action buttons
+    //MR: This code is not looking for these buttons correctly and above test is sufficeint anyway
+    // const actions = attachment.content.actions;
+    // if (!actions || !Array.isArray(actions)) {
+    //   return false;
+    // }
+
+    // const hasAllowButton = actions.some((action: any) => 
+    //   action.type === 'Action.Submit' && action.title === 'Allow'
+    // );
+    // const hasCancelButton = actions.some((action: any) => 
+    //   action.type === 'Action.Submit' && action.title === 'Cancel'
+    // );
+
+    // return hasAllowButton && hasCancelButton;
+    return true;
+  }
+
+  private async respondToConsentCard(userChoice: 'Allow' | 'Cancel'): Promise<Activity[]> {
+    if (!this.client || !this.conversationId) {
+      throw new Error('Client or conversation not initialized');
+    }
+
+    console.log(`Responding to consent card with: ${userChoice}`);
+
+    // Create the consent response activity as a plain object
+    const consentActivity = {
+      type: 'message',
+      channelData: {
+        postBack: true,
+        enableDiagnostics: true
+      },
+      value: {
+        action: userChoice,
+        id: 'submit',
+        shouldAwaitUserInput: true
+      }
+    } as any;
+
+    // Send the consent response and get the follow-up activities
+    const activities = await this.client.askQuestionAsync(JSON.stringify(consentActivity), this.conversationId);
+    // C# version looks as follows
+    // await foreach (var response in copilotClient.AskQuestionAsync(consentActivity, cancellationToken))
+    // {
+    //     // Handle response
+    // }    
+    console.log('Received activities after consent response:', activities);
+    return activities;
+  }
+
   async sendMessage(message: string): Promise<string> {
     if (!this.client || !this.conversationId) {
       throw new Error('Client or conversation not initialized');
     }
 
     try {
-      const activities = await this.client.askQuestionAsync(message, this.conversationId);
+      let activities = await this.client.askQuestionAsync(message, this.conversationId);
       console.log('Received activities from Copilot Studio:', activities);
+      
+      // Check if any activity is a consent card
+      // See https://microsoft.github.io/mcscatblog/posts/connector-consent-card-obo
+      const consentActivity = activities.find(activity => this.isConsentCard(activity));
+      if (consentActivity) {
+        console.log('Consent card detected, automatically sending Allow response');
+        // Automatically respond with "Allow" and get the next set of activities
+        activities = await this.respondToConsentCard('Allow');
+      }
+
       // Get the text from the last activity response
       const lastActivity = activities[activities.length - 1];
       
