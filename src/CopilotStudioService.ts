@@ -128,27 +128,26 @@ class CopilotStudioService {
 
     console.log(`Responding to consent card with: ${userChoice}`);
 
-    // Create the consent response activity as a plain object
+    // Create the consent response activity as an adaptive card response
+    // This mimics the user clicking the Allow/Cancel button on the adaptive card
+    // Based on: https://microsoft.github.io/mcscatblog/posts/connector-consent-card-obo
     const consentActivity = {
       type: 'message',
+      from: {
+        id: 'user'
+      },
       channelData: {
-        postBack: true,
-        enableDiagnostics: true
+        postBack: true
       },
       value: {
         action: userChoice,
-        id: 'submit',
-        shouldAwaitUserInput: true
+        id: 'submit'
       }
     } as any;
 
-    // Send the consent response and get the follow-up activities
-    const activities = await this.client.askQuestionAsync(JSON.stringify(consentActivity), this.conversationId);
-    // C# version looks as follows
-    // await foreach (var response in copilotClient.AskQuestionAsync(consentActivity, cancellationToken))
-    // {
-    //     // Handle response
-    // }    
+    // Use sendActivity instead of askQuestionAsync to send the Activity object
+    // This simulates the adaptive card button click
+    const activities = await this.client.sendActivity(consentActivity, this.conversationId);
     console.log('Received activities after consent response:', activities);
     return activities;
   }

@@ -79,6 +79,32 @@ export class MockCopilotStudioClient {
     return [responseActivity];
   }
 
+  async sendActivity(activity: Activity, conversationId?: string): Promise<Activity[]> {
+    console.log('MockCopilotStudioClient: Sending activity:', activity);
+    
+    // Simulate processing delay
+    await this.simulateDelay(500);
+    
+    // For mock purposes, just acknowledge the activity was received
+    const responseActivity = {
+      type: 'message',
+      id: `activity_response_${Date.now()}`,
+      timestamp: new Date(),
+      from: {
+        id: 'copilot_agent',
+        name: 'Copilot Studio Agent'
+      },
+      conversation: {
+        id: conversationId || this.conversationId
+      },
+      text: 'Mock: Activity received and processed',
+      channelData: {}
+    } as Activity;
+
+    console.log('MockCopilotStudioClient: Activity processed');
+    return [responseActivity];
+  }
+
   private generateMockResponse(question: string): string {
     const lowerQuestion = question.toLowerCase();
     
