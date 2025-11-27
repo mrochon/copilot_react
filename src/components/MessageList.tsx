@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '../CopilotStudioService';
 
 interface MessageListProps {
@@ -15,7 +16,13 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
           className={`message ${message.isUser ? 'message-user' : 'message-bot'}`}
         >
           <div className="message-content">
-            <div className="message-text">{message.text}</div>
+            <div className="message-text">
+              {message.isUser ? (
+                message.text
+              ) : (
+                <ReactMarkdown>{message.text}</ReactMarkdown>
+              )}
+            </div>
             <div className="message-timestamp">
               {message.timestamp.toLocaleTimeString()}
             </div>

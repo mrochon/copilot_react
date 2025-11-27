@@ -313,9 +313,9 @@ Set `REACT_APP_USE_MOCK_CLIENT=true` to use the mock Copilot Studio client:
 
 ## Notes
 
-Agent may respond with an Adaptive Card to request consent. That is currently handled in code by always responding Accept. I am not sure what the consent is for.
+- Agent may respond with an Adaptive Card to request consent. That is currently handled in code by always responding Accept. I am not sure what the consent is for.
 
-When using MCP tools, agent will respond firsttime with request to verify user credentials to the tools. Message looks as follows. Use the link to complete the task.
+- When using MCP tools, agent will respond firsttime with request to verify user credentials to the tools. Message looks as follows. Use the link to complete the task.
 
 ```
 Let's get you connected first, and then I can find that info for you. [Open connection manager](https://copilotstudio.microsoft.com/c2/tenants/1165490c-89b5-463b-b203-8b77e01597d2/environments/Default-1165490c-89b5-463b-b203-8b77e01597d2/bots/cr246_printerQA/channels/pva-published-engine-direct/conversations/e504ba54-8b35-484a-8456-e25033d0b897/user-connections) to verify your credentials.
