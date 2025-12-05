@@ -102,6 +102,11 @@ export const ChatInterface: React.FC = () => {
   };
 
   const handleSendMessage = useCallback(async (text: string) => {
+    // Stop any ongoing speech when user sends a new message (interruption)
+    if (isAvatarSpeaking) {
+      avatarRef.current?.stopSpeech();
+    }
+
     const userMessage: ChatMessage = {
       id: uuidv4(),
       text,
@@ -157,7 +162,7 @@ export const ChatInterface: React.FC = () => {
       setIsTyping(false);
       setIsListening(false); // Hide listening state
     }
-  }, [isSpeechInitialized, speakWithLipSync, sendMessage]);
+  }, [isAvatarSpeaking, isSpeechInitialized, speakWithLipSync, sendMessage]);
 
   useEffect(() => {
     if (!isVoiceRecording && voiceFinalResult.trim()) {
@@ -169,9 +174,13 @@ export const ChatInterface: React.FC = () => {
   }, [handleSendMessage, isVoiceRecording, resetVoiceRecognition, voiceFinalResult]);
 
   const handleStartVoice = useCallback(() => {
+    // Stop any ongoing speech when user starts voice input (interruption)
+    if (isAvatarSpeaking) {
+      avatarRef.current?.stopSpeech();
+    }
     resetVoiceRecognition();
     void startRecording();
-  }, [resetVoiceRecognition, startRecording]);
+  }, [isAvatarSpeaking, resetVoiceRecognition, startRecording]);
 
   const handleStopVoice = useCallback(() => {
     void stopRecording();
@@ -252,7 +261,7 @@ export const ChatInterface: React.FC = () => {
 
       <MessageInput
         onSendMessage={handleSendMessage}
-        disabled={isTyping || isAvatarSpeaking}
+        disabled={isTyping}
         onStartVoice={isSpeechInitialized ? handleStartVoice : undefined}
         onStopVoice={isSpeechInitialized ? handleStopVoice : undefined}
         isVoiceRecording={isVoiceRecording}
