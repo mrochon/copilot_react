@@ -74,24 +74,27 @@ export const ChatInterface: React.FC = () => {
   } = useSpeechRecognition({ language: recognitionLanguage });
 
   const [inputResetToken, setInputResetToken] = useState(0);
+  const welcomeTextRef = useRef("Hello! I'm your Copilot Studio assistant. How can I help you today?");
 
+  // Add initial welcome message on mount
   useEffect(() => {
-    // Add initial welcome message
     const welcomeMessage: ChatMessage = {
       id: uuidv4(),
-      text: "Hello! I'm your Copilot Studio assistant. How can I help you today?",
+      text: welcomeTextRef.current,
       isUser: false,
       timestamp: new Date(),
     };
     setMessages([welcomeMessage]);
+  }, []); // Empty dependency array - only run once on mount
 
-    // Speak the welcome message when speech service is initialized
-    if (isSpeechInitialized) {
-      speakWithLipSync(welcomeMessage.text).catch((error) => {
+  // Speak the welcome message when speech service is initialized
+  useEffect(() => {
+    if (isSpeechInitialized && messages.length === 1 && !messages[0].isUser) {
+      speakWithLipSync(welcomeTextRef.current).catch((error) => {
         console.warn('Failed to speak welcome message:', error);
       });
     }
-  }, [isSpeechInitialized, speakWithLipSync]);
+  }, [isSpeechInitialized, speakWithLipSync, messages]);
 
   useEffect(() => {
     scrollToBottom();

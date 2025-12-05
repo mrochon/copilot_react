@@ -27,16 +27,54 @@ const emptyState: SpeechRecognitionState = {
 export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) => {
   const recognizerRef = useRef<SpeechSDK.SpeechRecognizer | null>(null);
   const [state, setState] = useState<SpeechRecognitionState>(emptyState);
+  const activeSessionRef = useRef<{ active: boolean }>({ active: false });
+  const startInProgressRef = useRef<boolean>(false);
+  const pendingStopRef = useRef<boolean>(false);
 
   const language = useMemo(() => options.language || 'en-US', [options.language]);
 
-  const disposeRecognizer = useCallback(() => {
-    const recognizer = recognizerRef.current;
-    if (recognizer) {
-      recognizer.close();
+  const cleanupRecognizer = useCallback((target?: SpeechSDK.SpeechRecognizer | null) => {
+    const recognizer = target ?? recognizerRef.current;
+    activeSessionRef.current.active = false;
+    startInProgressRef.current = false;
+    pendingStopRef.current = false;
+
+    if (!recognizer) {
+      return;
+    }
+
+    if (recognizerRef.current === recognizer) {
       recognizerRef.current = null;
     }
+
+    try {
+      recognizer.close();
+    } catch (error) {
+      console.error('Error closing recognizer:', error);
+    }
   }, []);
+
+  const stopRecognizerInstance = useCallback((recognizer: SpeechSDK.SpeechRecognizer | null) => {
+    if (!recognizer) {
+      cleanupRecognizer(null);
+      return;
+    }
+
+    const finalize = () => cleanupRecognizer(recognizer);
+
+    try {
+      recognizer.stopContinuousRecognitionAsync(
+        () => finalize(),
+        (error) => {
+          console.error('Failed to stop voice capture:', error);
+          finalize();
+        }
+      );
+    } catch (error) {
+      console.error('Failed to stop voice capture:', error);
+      finalize();
+    }
+  }, [cleanupRecognizer]);
 
   const reset = useCallback(() => {
     setState(prev => ({
@@ -47,32 +85,23 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
     }));
   }, []);
 
-  const stopRecording = useCallback(async () => {
+  const stopRecording = useCallback(() => {
     const recognizer = recognizerRef.current;
     if (!recognizer) {
       setState(prev => ({ ...prev, isRecording: false }));
       return;
     }
 
-    await new Promise<void>((resolve, reject) => {
-      recognizer.stopContinuousRecognitionAsync(
-        () => {
-          disposeRecognizer();
-          setState(prev => ({ ...prev, isRecording: false }));
-          resolve();
-        },
-        (error) => {
-          disposeRecognizer();
-          setState(prev => ({
-            ...prev,
-            isRecording: false,
-            error: `Failed to stop voice capture: ${error}`
-          }));
-          reject(error);
-        }
-      );
-    });
-  }, [disposeRecognizer]);
+    // Immediately set recording to false (session stays active until cleanup)
+    setState(prev => ({ ...prev, isRecording: false }));
+
+    if (startInProgressRef.current) {
+      pendingStopRef.current = true;
+      return;
+    }
+
+    stopRecognizerInstance(recognizer);
+  }, [stopRecognizerInstance]);
 
   const startRecording = useCallback(async () => {
     if (recognizerRef.current) {
@@ -83,7 +112,13 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
       const recognizer = azureSpeechService.createSpeechRecognizer({ language });
       recognizerRef.current = recognizer;
 
+      // Create new session
+      activeSessionRef.current = { active: true };
+      startInProgressRef.current = true;
+      pendingStopRef.current = false;
+
       recognizer.recognizing = (_, event) => {
+        if (!activeSessionRef.current.active) return;
         if (event.result.reason === SpeechSDK.ResultReason.RecognizingSpeech) {
           setState(prev => ({
             ...prev,
@@ -93,6 +128,7 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
       };
 
       recognizer.recognized = (_, event) => {
+        if (!activeSessionRef.current.active) return;
         if (event.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
           setState(prev => ({
             ...prev,
@@ -110,19 +146,21 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
       };
 
       recognizer.canceled = (_, event) => {
+        if (!activeSessionRef.current.active) return;
         if (event.reason === SpeechSDK.CancellationReason.Error && event.errorDetails) {
           setState(prev => ({
             ...prev,
             error: `Voice capture canceled: ${event.errorDetails}`
           }));
         }
-        disposeRecognizer();
         setState(prev => ({ ...prev, isRecording: false }));
+        cleanupRecognizer(recognizer);
       };
 
       recognizer.sessionStopped = () => {
-        disposeRecognizer();
+        if (!activeSessionRef.current.active) return;
         setState(prev => ({ ...prev, isRecording: false }));
+        cleanupRecognizer(recognizer);
       };
 
       setState({
@@ -132,20 +170,26 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
         error: null
       });
 
-      await new Promise<void>((resolve, reject) => {
-        recognizer.startContinuousRecognitionAsync(
-          () => resolve(),
-          (error) => {
-            disposeRecognizer();
-            setState(prev => ({
-              ...prev,
-              isRecording: false,
-              error: `Failed to start voice capture: ${error}`
-            }));
-            reject(error);
+      // Start recognition and resolve any pending stop requests
+      recognizer.startContinuousRecognitionAsync(
+        () => {
+          startInProgressRef.current = false;
+          if (pendingStopRef.current) {
+            pendingStopRef.current = false;
+            stopRecognizerInstance(recognizer);
           }
-        );
-      });
+        },
+        (error) => {
+          startInProgressRef.current = false;
+          pendingStopRef.current = false;
+          cleanupRecognizer(recognizer);
+          setState(prev => ({
+            ...prev,
+            isRecording: false,
+            error: `Failed to start voice capture: ${error}`
+          }));
+        }
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error starting voice capture.';
       setState(prev => ({
@@ -155,21 +199,20 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
           ? 'Voice capture is unavailable. Please configure Azure Speech Service in the .env file.'
           : `Failed to access microphone: ${errorMessage}`
       }));
-      disposeRecognizer();
+      cleanupRecognizer();
     }
-  }, [disposeRecognizer, language]);
+  }, [cleanupRecognizer, language, stopRecognizerInstance]);
 
   useEffect(() => {
     return () => {
       const recognizer = recognizerRef.current;
       if (recognizer) {
-        recognizer.stopContinuousRecognitionAsync(
-          () => disposeRecognizer(),
-          () => disposeRecognizer()
-        );
+        stopRecognizerInstance(recognizer);
+      } else {
+        cleanupRecognizer();
       }
     };
-  }, [disposeRecognizer]);
+  }, [cleanupRecognizer, stopRecognizerInstance]);
 
   return {
     isRecording: state.isRecording,

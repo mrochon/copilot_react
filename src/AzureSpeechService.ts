@@ -28,6 +28,7 @@ export class AzureSpeechService {
   private region: string | null = null;
   private silentAudioStream: SpeechSDK.PushAudioOutputStream | null = null;
   private silentAudioCallback: SpeechSDK.PushAudioOutputStreamCallback | null = null;
+  private activeSynthesisPromises: Set<{ settled: boolean }> = new Set();
 
   initialize(config: SpeechConfig): void {
     try {
@@ -71,6 +72,8 @@ export class AzureSpeechService {
       const visemeData: VisemeData[] = [];
       let audioBuffer: ArrayBuffer;
       let duration = 0;
+      const promiseState = { settled: false };
+      this.activeSynthesisPromises.add(promiseState);
 
       // Create SSML with viseme requests
       const ssml = `
@@ -95,6 +98,10 @@ export class AzureSpeechService {
       this.synthesizer!.speakSsmlAsync(
         ssml,
         (result) => {
+          if (promiseState.settled || !this.activeSynthesisPromises.has(promiseState)) return;
+          promiseState.settled = true;
+          this.activeSynthesisPromises.delete(promiseState);
+          
           if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
             audioBuffer = result.audioData;
             duration = result.audioDuration / 10000; // Convert to milliseconds
@@ -112,6 +119,10 @@ export class AzureSpeechService {
           }
         },
         (error) => {
+          if (promiseState.settled || !this.activeSynthesisPromises.has(promiseState)) return;
+          promiseState.settled = true;
+          this.activeSynthesisPromises.delete(promiseState);
+          
           console.error('Speech synthesis error:', error);
           reject(error);
         }
@@ -139,9 +150,16 @@ export class AzureSpeechService {
     }
 
     return new Promise((resolve, reject) => {
+      const promiseState = { settled: false };
+      this.activeSynthesisPromises.add(promiseState);
+      
       this.synthesizer!.speakTextAsync(
         text,
         (result) => {
+          if (promiseState.settled || !this.activeSynthesisPromises.has(promiseState)) return;
+          promiseState.settled = true;
+          this.activeSynthesisPromises.delete(promiseState);
+          
           if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
             console.log('Speech synthesis completed');
             resolve(result.audioData);
@@ -151,6 +169,10 @@ export class AzureSpeechService {
           }
         },
         (error) => {
+          if (promiseState.settled || !this.activeSynthesisPromises.has(promiseState)) return;
+          promiseState.settled = true;
+          this.activeSynthesisPromises.delete(promiseState);
+          
           console.error('Speech synthesis error:', error);
           reject(error);
         }
@@ -168,6 +190,12 @@ export class AzureSpeechService {
   }
 
   dispose(): void {
+    // Mark all active promises as settled to prevent callbacks
+    this.activeSynthesisPromises.forEach(state => {
+      state.settled = true;
+    });
+    this.activeSynthesisPromises.clear();
+    
     if (this.synthesizer) {
       this.synthesizer.close();
       this.synthesizer = null;
