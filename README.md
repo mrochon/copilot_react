@@ -204,6 +204,10 @@ Integration with Azure Speech Service that:
 - Supports multiple neural voices
 - Handles audio playback and timing
 
+#### Custom voice
+
+1. Foundry->Fine-tuning->AI Service Fine-tuning
+
 ### AuthContext
 Manages MSAL authentication state and provides login/logout functionality.
 
