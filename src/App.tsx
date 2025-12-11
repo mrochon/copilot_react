@@ -41,7 +41,7 @@ const AppContent: React.FC = () => {
         tenantId: process.env.REACT_APP_COPILOT_TENANT_ID,
         cloud: process.env.REACT_APP_COPILOT_CLOUD,
         agentType: process.env.REACT_APP_COPILOT_AGENT_TYPE,
-        directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
+      //  directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
       });
 
       const config: CopilotStudioConfig = {
@@ -51,7 +51,7 @@ const AppContent: React.FC = () => {
         tenantId: process.env.REACT_APP_COPILOT_TENANT_ID || '',
         cloud: (process.env.REACT_APP_COPILOT_CLOUD as PowerPlatformCloud) || PowerPlatformCloud.Prod,
         agentType: (process.env.REACT_APP_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
-        directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
+        // directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
         authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
         useMock: process.env.REACT_APP_USE_MOCK_CLIENT === 'true',
       };
