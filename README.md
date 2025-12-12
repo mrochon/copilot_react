@@ -251,6 +251,9 @@ Custom React hook that:
    - Run `npm install` to ensure all dependencies are installed
    - Check TypeScript configuration in `tsconfig.json`
 
+4. **'Hello' not spoke on initial load.**
+   - Select the Key or I icon in address bar and change site permissions to allow play at load (Sound->Allow)
+
 ### Getting Help
 
 - Check the browser console for detailed error messages
