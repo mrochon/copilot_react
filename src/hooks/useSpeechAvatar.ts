@@ -90,14 +90,14 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       
       const result = await azureSpeechService.synthesizeSpeechWithVisemes(text);
       
+      console.log(`Speech synthesis completed. Duration: ${result.duration}ms, Visemes: ${result.visemeData.length}, AudioBuffer size: ${result.audioBuffer.byteLength}`);
+      
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
         visemeData: result.visemeData,
         audioBuffer: result.audioBuffer
       }));
-
-      console.log(`Speech synthesis completed. Duration: ${result.duration}ms, Visemes: ${result.visemeData.length}`);
     } catch (error) {
       console.error('Speech synthesis failed:', error);
       setState(prev => ({ 

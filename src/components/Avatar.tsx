@@ -123,6 +123,14 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
   const animationRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const lastProcessedBufferRef = useRef<ArrayBuffer | null>(null);
+  const pendingResumeHandlerRef = useRef<(() => void) | null>(null);
+
+  const cleanupObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
 
   const mergedMouthConfig = useMemo(() => ({
     top: mouthConfig?.top ?? DEFAULT_MOUTH_CONFIG.top,
@@ -180,42 +188,86 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
       return;
     }
 
+    if (pendingResumeHandlerRef.current) {
+      document.removeEventListener('pointerdown', pendingResumeHandlerRef.current);
+      document.removeEventListener('keydown', pendingResumeHandlerRef.current);
+      pendingResumeHandlerRef.current = null;
+    }
+
+    const startPlayback = async (): Promise<void> => {
+      const element = audioRef.current;
+      if (!element) {
+        return;
+      }
+
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+
+      try {
+        await element.play();
+        onSpeechStart?.();
+
+        if (visemeData.length > 0) {
+          animationRef.current = requestAnimationFrame(animateVisemes);
+        } else {
+          setCurrentMouthShape('aa');
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'NotAllowedError') {
+          console.warn('Audio playback blocked until user interaction.');
+          onSpeechEnd?.();
+          setCurrentMouthShape('neutral');
+
+          if (!pendingResumeHandlerRef.current) {
+            const resume = async () => {
+              document.removeEventListener('pointerdown', resume);
+              document.removeEventListener('keydown', resume);
+              pendingResumeHandlerRef.current = null;
+
+              try {
+                await startPlayback();
+              } catch (resumeError) {
+                console.error('Failed to resume audio after user interaction:', resumeError);
+                onSpeechEnd?.();
+                setCurrentMouthShape('neutral');
+                cleanupObjectUrl();
+              }
+            };
+
+            pendingResumeHandlerRef.current = resume;
+            document.addEventListener('pointerdown', resume, { once: true });
+            document.addEventListener('keydown', resume, { once: true });
+          }
+
+          return;
+        }
+
+        throw error;
+      }
+    };
+
     try {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
 
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
+      cleanupObjectUrl();
 
       const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(blob);
       objectUrlRef.current = audioUrl;
       audioRef.current.src = audioUrl;
 
-      onSpeechStart?.();
-      await audioRef.current.play();
-
-      if (visemeData.length > 0) {
-        if (animationRef.current !== null) {
-          cancelAnimationFrame(animationRef.current);
-          animationRef.current = null;
-        }
-        animationRef.current = requestAnimationFrame(animateVisemes);
-      } else {
-        setCurrentMouthShape('aa');
-      }
+      console.log('Avatar: New audioBuffer received, preparing playback. Size:', audioBuffer.byteLength);
+      await startPlayback();
     } catch (error) {
       console.error('Error playing audio:', error);
       onSpeechEnd?.();
       setCurrentMouthShape('neutral');
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
+      cleanupObjectUrl();
     }
-  }, [audioBuffer, visemeData, onSpeechStart, onSpeechEnd, animateVisemes]);
+  }, [audioBuffer, visemeData, animateVisemes, onSpeechStart, onSpeechEnd, cleanupObjectUrl]);
 
   const stopSpeech = useCallback(() => {
     const audioElement = audioRef.current;
@@ -229,16 +281,18 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
       animationRef.current = null;
     }
 
-    setCurrentMouthShape('neutral');
-
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
+    if (pendingResumeHandlerRef.current) {
+      document.removeEventListener('pointerdown', pendingResumeHandlerRef.current);
+      document.removeEventListener('keydown', pendingResumeHandlerRef.current);
+      pendingResumeHandlerRef.current = null;
     }
+
+    setCurrentMouthShape('neutral');
+    cleanupObjectUrl();
 
     onSpeechEnd?.();
     onStopSpeech?.();
-  }, [onSpeechEnd, onStopSpeech]);
+  }, [onSpeechEnd, onStopSpeech, cleanupObjectUrl]);
 
   useImperativeHandle(ref, () => ({
     stopSpeech
@@ -255,7 +309,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     }
 
     lastProcessedBufferRef.current = audioBuffer;
-    playAudioWithVisemes();
+    void playAudioWithVisemes();
   }, [audioBuffer, playAudioWithVisemes]);
 
   useEffect(() => {
@@ -270,10 +324,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
+      cleanupObjectUrl();
       onSpeechEnd?.();
     };
 
@@ -304,11 +355,15 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
+
+    if (pendingResumeHandlerRef.current) {
+      document.removeEventListener('pointerdown', pendingResumeHandlerRef.current);
+      document.removeEventListener('keydown', pendingResumeHandlerRef.current);
+      pendingResumeHandlerRef.current = null;
     }
-  }, []);
+
+    cleanupObjectUrl();
+  }, [cleanupObjectUrl]);
 
   const renderStylisedFace = () => (
     <>

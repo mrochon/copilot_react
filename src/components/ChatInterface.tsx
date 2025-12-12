@@ -75,6 +75,7 @@ export const ChatInterface: React.FC = () => {
 
   const [inputResetToken, setInputResetToken] = useState(0);
   const welcomeTextRef = useRef("Hello! I'm your Copilot Studio assistant. How can I help you today?");
+  const hasSpokenWelcomeRef = useRef(false);
 
   // Add initial welcome message on mount
   useEffect(() => {
@@ -89,12 +90,21 @@ export const ChatInterface: React.FC = () => {
 
   // Speak the welcome message when speech service is initialized
   useEffect(() => {
-    if (isSpeechInitialized && messages.length === 1 && !messages[0].isUser) {
-      speakWithLipSync(welcomeTextRef.current).catch((error) => {
-        console.warn('Failed to speak welcome message:', error);
-      });
+    if (isSpeechInitialized && !hasSpokenWelcomeRef.current && !isAvatarSpeaking && !isSpeechLoading) {
+      hasSpokenWelcomeRef.current = true;
+      console.log('Attempting to speak welcome message...');
+      
+      // Use setTimeout to ensure Avatar component is ready
+      const timeoutId = setTimeout(() => {
+        speakWithLipSync(welcomeTextRef.current).catch((error) => {
+          console.error('Failed to speak welcome message:', error);
+          hasSpokenWelcomeRef.current = false; // Reset so it can try again
+        });
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [isSpeechInitialized, speakWithLipSync, messages]);
+  }, [isSpeechInitialized, isAvatarSpeaking, isSpeechLoading, speakWithLipSync]);
 
   useEffect(() => {
     scrollToBottom();
