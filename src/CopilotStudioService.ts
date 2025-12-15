@@ -86,7 +86,8 @@ class CopilotStudioService {
     if (!activity?.attachments || !Array.isArray(activity.attachments) || activity.attachments.length === 0) {
       return false;
     }
-
+    console.log('Response includes attachements')
+    console.log('Checking activity for consent card:', activity);
     const attachment = activity.attachments[0] as any;
     if (!attachment?.content?.body || !Array.isArray(attachment.content.body)) {
       return false;
