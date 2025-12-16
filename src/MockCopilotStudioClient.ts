@@ -20,7 +20,7 @@ export class MockCopilotStudioClient {
     });
   }
 
-  async startConversationAsync(startNewConversation: boolean = true): Promise<Activity> {
+  async *startConversationStreaming(startNewConversation: boolean = true): AsyncGenerator<Activity> {
     console.log('MockCopilotStudioClient: Starting new conversation...');
     
     // Simulate some processing delay
@@ -45,47 +45,60 @@ export class MockCopilotStudioClient {
     } as Activity;
 
     console.log('MockCopilotStudioClient: Conversation started with ID:', this.conversationId);
-    return startActivity;
+    yield startActivity;
+  }
+
+  async startConversationAsync(startNewConversation: boolean = true): Promise<Activity> {
+    const activities: Activity[] = [];
+    for await (const activity of this.startConversationStreaming(startNewConversation)) {
+      activities.push(activity);
+    }
+    return activities[0];
   }
 
   async askQuestionAsync(question: string, conversationId: string): Promise<Activity[]> {
     console.log(`MockCopilotStudioClient: Received question "${question}" for conversation ${conversationId}`);
-    
-    // Simulate processing delay
-    await this.simulateDelay(1000);
-    
-    this.messageCount++;
-    
-    // Generate mock responses based on the question
-    const response = this.generateMockResponse(question);
-    this.lastResponse = response;
-    
-    const responseActivity = {
+    const activity: Activity = {
       type: 'message',
-      id: `activity_response_${Date.now()}`,
+      id: `activity_question_${Date.now()}`,
       timestamp: new Date(),
       from: {
-        id: 'copilot_agent',
-        name: 'Copilot Studio Agent'
+        id: 'mock_user',
+        name: 'Mock User'
       },
       conversation: {
         id: conversationId
       },
-      text: response,
+      text: question,
       channelData: {}
     } as Activity;
 
-    console.log('MockCopilotStudioClient: Sending response:', response);
-    return [responseActivity];
+    const responses: Activity[] = [];
+    for await (const response of this.sendActivityStreaming(activity, conversationId)) {
+      responses.push(response);
+    }
+    return responses;
   }
 
   async sendActivity(activity: Activity, conversationId?: string): Promise<Activity[]> {
     console.log('MockCopilotStudioClient: Sending activity:', activity);
     
-    // Simulate processing delay
-    await this.simulateDelay(500);
+    const responses: Activity[] = [];
+    for await (const response of this.sendActivityStreaming(activity, conversationId)) {
+      responses.push(response);
+    }
+    return responses;
+  }
+
+  async *sendActivityStreaming(activity: Activity, conversationId?: string): AsyncGenerator<Activity> {
+    console.log('MockCopilotStudioClient: Streaming activity:', activity);
     
-    // For mock purposes, just acknowledge the activity was received
+    await this.simulateDelay(500);
+    this.messageCount++;
+
+    const responseText = this.generateMockResponse(activity.text || '');
+    this.lastResponse = responseText;
+
     const responseActivity = {
       type: 'message',
       id: `activity_response_${Date.now()}`,
@@ -97,12 +110,12 @@ export class MockCopilotStudioClient {
       conversation: {
         id: conversationId || this.conversationId
       },
-      text: 'Mock: Activity received and processed',
+      text: responseText,
       channelData: {}
     } as Activity;
 
-    console.log('MockCopilotStudioClient: Activity processed');
-    return [responseActivity];
+    console.log('MockCopilotStudioClient: Streaming response:', responseText);
+    yield responseActivity;
   }
 
   private generateMockResponse(question: string): string {

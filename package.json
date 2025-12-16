@@ -12,7 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^3.5.0",
     "@azure/msal-react": "^2.0.0",
-    "@microsoft/agents-copilotstudio-client": "^1.0.0",
+    "@microsoft/agents-copilotstudio-client": "1.1.1",
     "microsoft-cognitiveservices-speech-sdk": "^1.46.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -38,6 +38,6 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/uuid": "^9.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^4.9.5"
   }
 }

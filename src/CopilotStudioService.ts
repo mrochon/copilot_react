@@ -73,8 +73,16 @@ class CopilotStudioService {
     }
 
     try {
-      const activity = await this.client.startConversationAsync(true);
-      this.conversationId = activity.conversation?.id || null;
+      // @ts-ignore - Using non-deprecated method in v1.1.1
+      const activities = await this.client.startConversationAsync(true);
+      const activity = Array.isArray(activities) ? activities.find(a => a.type === 'message') || null : activities;
+      if (!activity) {
+        throw new Error('Failed to start conversation: no activity received');
+      }
+      if (!activity.conversation?.id) {
+        throw new Error('Failed to start conversation: no conversation ID in activity');
+      }
+      this.conversationId = activity.conversation.id;
     } catch (error) {
       console.error('Error starting new conversation:', error);
       throw error;
