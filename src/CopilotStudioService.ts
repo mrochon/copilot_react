@@ -26,7 +26,7 @@ class CopilotStudioService {
   private client: CopilotStudioClient | MockCopilotStudioClient | null = null;
   private conversationId: string | null = null;
 
-  async initialize(config: CopilotStudioConfig, accessToken: string): Promise<void> {
+  async initialize(config: CopilotStudioConfig, accessToken: string): Promise<string> {
     try {
       console.log('Initializing Copilot Studio client with config:', {
         environmentId: config.environmentId,
@@ -59,15 +59,15 @@ class CopilotStudioService {
         this.client = new CopilotStudioClient(connectionSettings, accessToken);
       }
 
-      // Start a new conversation
-      await this.startNewConversation();
+      // Start a new conversation and return the welcome message text
+      return await this.startNewConversation();
     } catch (error) {
       console.error('Error initializing Copilot Studio client:', error);
       throw error;
     }
   }
 
-  private async startNewConversation(): Promise<void> {
+  private async startNewConversation(): Promise<string> {
     if (!this.client) {
       throw new Error('Client not initialized');
     }
@@ -83,6 +83,7 @@ class CopilotStudioService {
         throw new Error('Failed to start conversation: no conversation ID in activity');
       }
       this.conversationId = activity.conversation.id;
+      return activity.text || '';
     } catch (error) {
       console.error('Error starting new conversation:', error);
       throw error;
@@ -233,7 +234,7 @@ export const copilotService = new CopilotStudioService();
 export const useCopilotStudio = () => {
   const { getAccessToken, isAuthenticated } = useAuth();
 
-  const initializeCopilot = async (config: CopilotStudioConfig): Promise<void> => {
+  const initializeCopilot = async (config: CopilotStudioConfig): Promise<string> => {
     if (!isAuthenticated) {
       throw new Error('User must be authenticated to use Copilot Studio');
     }
@@ -243,7 +244,7 @@ export const useCopilotStudio = () => {
       if (!accessToken) {
         throw new Error('Unable to obtain access token');
       }
-      await copilotService.initialize(config, accessToken);
+      return await copilotService.initialize(config, accessToken);
     } catch (error) {
       console.error('Error initializing Copilot Studio:', error);
       throw error;

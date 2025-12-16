@@ -8,7 +8,11 @@ import { useAuth } from '../AuthContext';
 import { useSpeechAvatar } from '../hooks/useSpeechAvatar';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
-export const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+  welcomeMessage: string;
+}
+
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -74,29 +78,30 @@ export const ChatInterface: React.FC = () => {
   } = useSpeechRecognition({ language: recognitionLanguage });
 
   const [inputResetToken, setInputResetToken] = useState(0);
-  const welcomeTextRef = useRef("Hello! I'm your Copilot Studio assistant. How can I help you today?");
   const hasSpokenWelcomeRef = useRef(false);
 
   // Add initial welcome message on mount
   useEffect(() => {
-    const welcomeMessage: ChatMessage = {
-      id: uuidv4(),
-      text: welcomeTextRef.current,
-      isUser: false,
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMessage]);
-  }, []); // Empty dependency array - only run once on mount
+    if (welcomeMessage) {
+      const welcome: ChatMessage = {
+        id: uuidv4(),
+        text: welcomeMessage,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages([welcome]);
+    }
+  }, [welcomeMessage]); // Update when welcomeMessage changes
 
   // Speak the welcome message when speech service is initialized
   useEffect(() => {
-    if (isSpeechInitialized && !hasSpokenWelcomeRef.current && !isAvatarSpeaking && !isSpeechLoading) {
+    if (isSpeechInitialized && welcomeMessage && !hasSpokenWelcomeRef.current && !isAvatarSpeaking && !isSpeechLoading) {
       hasSpokenWelcomeRef.current = true;
       console.log('Attempting to speak welcome message...');
       
       // Use setTimeout to ensure Avatar component is ready
       const timeoutId = setTimeout(() => {
-        speakWithLipSync(welcomeTextRef.current).catch((error) => {
+        speakWithLipSync(welcomeMessage).catch((error) => {
           console.error('Failed to speak welcome message:', error);
           hasSpokenWelcomeRef.current = false; // Reset so it can try again
         });
@@ -104,7 +109,7 @@ export const ChatInterface: React.FC = () => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isSpeechInitialized, isAvatarSpeaking, isSpeechLoading, speakWithLipSync]);
+  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync]);
 
   useEffect(() => {
     scrollToBottom();

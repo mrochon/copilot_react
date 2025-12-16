@@ -12,6 +12,7 @@ const AppContent: React.FC = () => {
   const { initializeCopilot, isInitialized, resetService } = useCopilotStudio();
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string>('');
 
   // Reset service when user logs out
   useEffect(() => {
@@ -65,7 +66,8 @@ const AppContent: React.FC = () => {
         throw new Error('Missing required Copilot Studio configuration. Please check your environment variables.');
       }
 
-      await initializeCopilot(config);
+      const welcomeText = await initializeCopilot(config);
+      setWelcomeMessage(welcomeText);
     } catch (error) {
       console.error('Failed to initialize Copilot Studio:', error);
       setCopilotError(error instanceof Error ? error.message : 'Failed to initialize Copilot Studio');
@@ -118,7 +120,7 @@ const AppContent: React.FC = () => {
         )}
 
         {!copilotLoading && !copilotError && isInitialized && (
-          <ChatInterface />
+          <ChatInterface welcomeMessage={welcomeMessage} />
         )}
 
         {!copilotLoading && !copilotError && !isInitialized && (
