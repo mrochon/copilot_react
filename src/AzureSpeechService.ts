@@ -81,7 +81,7 @@ export class AzureSpeechService {
                xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="en-US">
           <voice name="${this.speechConfig!.speechSynthesisVoiceName}">
             <mstts:viseme type="FacialExpression"/>
-            ${this.escapeXml(text)}
+            ${this.prepareSpeechInput(text)}
           </voice>
         </speak>
       `;
@@ -180,13 +180,21 @@ export class AzureSpeechService {
     });
   }
 
-  private escapeXml(text: string): string {
-    return text
+  private prepareSpeechInput(text: string): string {
+    // Truncate text by removing portion starting with '*Source:*'
+    const sourceIndex = text.indexOf('*Source:*');
+    if (sourceIndex !== -1) {
+      text = text.substring(0, sourceIndex).trim();
+      text = text + ' Please check references below for more information';
+    }
+    text = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
+    
+    return text;
   }
 
   dispose(): void {
