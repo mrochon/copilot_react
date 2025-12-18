@@ -23,9 +23,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
 
   // Initialize speech avatar
   const speechAvatar = useSpeechAvatar({
-    speechKey: process.env.REACT_APP_SPEECH_KEY || '',
-    speechRegion: process.env.REACT_APP_SPEECH_REGION || 'eastus',
-    voiceName: process.env.REACT_APP_SPEECH_VOICE || 'en-US-JennyNeural'
+    speechKey: import.meta.env.VITE_SPEECH_KEY || '',
+    speechRegion: import.meta.env.VITE_SPEECH_REGION || 'eastus',
+    voiceName: import.meta.env.VITE_SPEECH_VOICE || 'en-US-JennyNeural'
   });
 
   const {
@@ -41,22 +41,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
     clearError: clearSpeechAvatarError
   } = speechAvatar;
 
-  const avatarImageSrc = process.env.REACT_APP_AVATAR_IMAGE_URL;
+  const avatarImageSrc = import.meta.env.VITE_AVATAR_IMAGE_URL;
 
   const avatarMouthConfig = useMemo(() => ({
-    top: process.env.REACT_APP_AVATAR_MOUTH_TOP || '68%',
-    left: process.env.REACT_APP_AVATAR_MOUTH_LEFT || '50%',
-    width: process.env.REACT_APP_AVATAR_MOUTH_WIDTH || '24%',
-    height: process.env.REACT_APP_AVATAR_MOUTH_HEIGHT || '14%',
+    top: import.meta.env.VITE_AVATAR_MOUTH_TOP || '68%',
+    left: import.meta.env.VITE_AVATAR_MOUTH_LEFT || '50%',
+    width: import.meta.env.VITE_AVATAR_MOUTH_WIDTH || '24%',
+    height: import.meta.env.VITE_AVATAR_MOUTH_HEIGHT || '14%',
   }), []);
 
   const recognitionLanguage = useMemo(() => {
-    const explicitLanguage = process.env.REACT_APP_SPEECH_RECOGNITION_LANGUAGE;
+    const explicitLanguage = import.meta.env.VITE_SPEECH_RECOGNITION_LANGUAGE;
     if (explicitLanguage && explicitLanguage.trim()) {
       return explicitLanguage.trim();
     }
 
-    const voiceName = process.env.REACT_APP_SPEECH_VOICE;
+    const voiceName = import.meta.env.VITE_SPEECH_VOICE;
     if (voiceName) {
       const localeMatch = voiceName.match(/^[a-z]{2}-[A-Z]{2}/);
       if (localeMatch) {

@@ -41,6 +41,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Starting login process...');
       const response: AuthenticationResult = await instance.loginPopup(loginRequest);
       console.log('Login successful:', response.account?.username);
+      
+      // Pre-fetch token for Power Platform to ensure consent is granted
+      try {
+        const tokenRequest = {
+          scopes: ['https://api.powerplatform.com/.default'],
+          account: response.account,
+        };
+        await instance.acquireTokenSilent(tokenRequest);
+        console.log('Power Platform token pre-fetched successfully');
+      } catch (tokenError) {
+        console.warn('Could not pre-fetch Power Platform token silently:', tokenError);
+        // This is OK - it will be requested interactively later if needed
+      }
+      
       // The account will be set automatically via the useEffect above
     } catch (error) {
       console.error('Login error:', error);
@@ -63,7 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Logout with specific account to ensure proper token cleanup
         await instance.logoutPopup({
           account: currentAccount,
-          postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin
+          postLogoutRedirectUri: import.meta.env.VITE_REDIRECT_URI || window.location.origin
         });
       } else {
         // Fallback to generic logout if no account found

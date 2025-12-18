@@ -31,14 +31,14 @@ export const debugTokenScope = (config: any) => {
 // Test with your configuration
 export const testConfiguration = () => {
   const config = {
-    environmentId: process.env.REACT_APP_COPILOT_ENVIRONMENT_ID || '',
-    agentIdentifier: process.env.REACT_APP_COPILOT_AGENT_IDENTIFIER || '',
-    appClientId: process.env.REACT_APP_COPILOT_APP_CLIENT_ID || '',
-    tenantId: process.env.REACT_APP_COPILOT_TENANT_ID || '',
-    cloud: (process.env.REACT_APP_COPILOT_CLOUD as PowerPlatformCloud) || PowerPlatformCloud.Prod,
-    agentType: (process.env.REACT_APP_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
-    // directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
-    authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
+    environmentId: import.meta.env.VITE_COPILOT_ENVIRONMENT_ID || '',
+    agentIdentifier: import.meta.env.VITE_COPILOT_AGENT_IDENTIFIER || '',
+    appClientId: import.meta.env.VITE_COPILOT_APP_CLIENT_ID || '',
+    tenantId: import.meta.env.VITE_COPILOT_TENANT_ID || '',
+    cloud: (import.meta.env.VITE_COPILOT_CLOUD as PowerPlatformCloud) || PowerPlatformCloud.Prod,
+    agentType: (import.meta.env.VITE_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
+    // directConnectUrl: import.meta.env.VITE_COPILOT_DIRECT_CONNECT_URL,
+    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_COPILOT_TENANT_ID || 'common'}`,
   };
 
   return debugTokenScope(config);

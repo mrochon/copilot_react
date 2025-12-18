@@ -182,7 +182,7 @@ export class AzureSpeechService {
 
   private prepareSpeechInput(text: string): string {
     // Truncate text by removing portion starting with '*Source:*'
-    const sourceIndex = text.indexOf('*Source:*');
+    const sourceIndex = text.indexOf('**Source:*');
     if (sourceIndex !== -1) {
       text = text.substring(0, sourceIndex).trim();
       text = text + ' Please check references below for more information';
