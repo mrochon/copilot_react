@@ -7,6 +7,7 @@ const msalConfig: Configuration = {
     authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
     redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
     postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
+    navigateToLoginRequestUrl: false, // Set to false to prevent navigation issues
   },
   cache: {
     cacheLocation: 'localStorage',

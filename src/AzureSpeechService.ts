@@ -1,4 +1,6 @@
 import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk';
+import { TTSService, TTSResult } from './TTSService';
+import type { VisemeData } from './TTSService';
 
 export interface SpeechConfig {
   subscriptionKey: string;
@@ -6,10 +8,7 @@ export interface SpeechConfig {
   voiceName: string;
 }
 
-export interface VisemeData {
-  audioOffset: number;
-  visemeId: number;
-}
+export type { VisemeData };
 
 class SilentPushAudioOutputStreamCallback extends SpeechSDK.PushAudioOutputStreamCallback {
   write(): void {
@@ -21,7 +20,7 @@ class SilentPushAudioOutputStreamCallback extends SpeechSDK.PushAudioOutputStrea
   }
 }
 
-export class AzureSpeechService {
+export class AzureSpeechService implements TTSService {
   private speechConfig: SpeechSDK.SpeechConfig | null = null;
   private synthesizer: SpeechSDK.SpeechSynthesizer | null = null;
   private subscriptionKey: string | null = null;
@@ -59,11 +58,7 @@ export class AzureSpeechService {
     }
   }
 
-  async synthesizeSpeechWithVisemes(text: string): Promise<{
-    audioBuffer: ArrayBuffer;
-    visemeData: VisemeData[];
-    duration: number;
-  }> {
+  async synthesizeSpeechWithVisemes(text: string): Promise<TTSResult> {
     if (!this.synthesizer) {
       throw new Error('Speech service not initialized');
     }
@@ -182,7 +177,7 @@ export class AzureSpeechService {
 
   private prepareSpeechInput(text: string): string {
     // Truncate text by removing portion starting with '*Source:*'
-    const sourceIndex = text.indexOf('*Source:*');
+    const sourceIndex = text.indexOf('**Source:*');
     if (sourceIndex !== -1) {
       text = text.substring(0, sourceIndex).trim();
       text = text + ' Please check references below for more information';

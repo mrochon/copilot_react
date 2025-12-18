@@ -39,11 +39,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       console.log('Starting login process...');
-      const response: AuthenticationResult = await instance.loginPopup(loginRequest);
+      console.log('MSAL Config:', {
+        clientId: instance.getConfiguration().auth.clientId,
+        authority: instance.getConfiguration().auth.authority,
+        redirectUri: instance.getConfiguration().auth.redirectUri
+      });
+      
+      const response: AuthenticationResult = await instance.loginPopup({
+        ...loginRequest,
+        redirectUri: window.location.origin, // Explicitly set redirect URI
+      });
+      
       console.log('Login successful:', response.account?.username);
+      console.log('Token endpoint used:', response.authority);
       // The account will be set automatically via the useEffect above
     } catch (error) {
       console.error('Login error:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
     } finally {
       setIsLoading(false);
     }
