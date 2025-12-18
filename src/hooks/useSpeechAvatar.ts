@@ -47,7 +47,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         let service: TTSService;
 
         if (provider === 'elevenlabs') {
-          // Initialize ElevenLabs
+          // Initialize ElevenLabs for TTS
           if (!config.elevenLabsApiKey || config.elevenLabsApiKey === 'YOUR_ELEVENLABS_API_KEY') {
             setState(prev => ({ 
               ...prev, 
@@ -64,8 +64,19 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
 
           service = elevenLabsTTSService;
           console.log('ElevenLabs TTS service initialized successfully');
+
+          // Also initialize Azure Speech Service for speech recognition (voice input)
+          // even when using ElevenLabs for TTS (voice output)
+          if (config.speechKey && config.speechKey !== 'YOUR_AZURE_SPEECH_KEY') {
+            azureSpeechService.initialize({
+              subscriptionKey: config.speechKey,
+              region: config.speechRegion || 'eastus',
+              voiceName: config.voiceName || 'en-US-JennyNeural'
+            });
+            console.log('Azure Speech Service also initialized for voice input/recognition');
+          }
         } else {
-          // Initialize Azure Speech
+          // Initialize Azure Speech for both TTS and recognition
           if (!config.speechKey || config.speechKey === 'YOUR_AZURE_SPEECH_KEY') {
             setState(prev => ({ 
               ...prev, 

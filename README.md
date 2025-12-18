@@ -173,6 +173,17 @@ For high-quality, natural-sounding speech:
 
 **Note**: ElevenLabs uses approximated viseme data, so lip-sync may be less accurate than Azure Speech Service.
 
+**Important for Voice Input**: If you want to use voice input (microphone) to talk to the agent, you must configure Azure Speech Service even when using ElevenLabs for voice output. Voice recognition always requires Azure Speech Service, regardless of your TTS provider choice. Simply add both configurations to your `.env` file:
+```env
+# For voice OUTPUT (choose one)
+REACT_APP_TTS_PROVIDER=elevenlabs
+REACT_APP_ELEVENLABS_API_KEY=your-key
+
+# For voice INPUT (always required for microphone)
+REACT_APP_SPEECH_KEY=your-azure-key
+REACT_APP_SPEECH_REGION=eastus
+```
+
 #### Choosing a TTS Provider
 
 | Feature | Azure Speech Service | ElevenLabs |
