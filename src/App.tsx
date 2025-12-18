@@ -1,11 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, memo } from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
-import { ChatInterface } from './components/ChatInterface';
 import { LoginComponent } from './components/LoginComponent';
 import { useCopilotStudio, CopilotStudioConfig } from './CopilotStudioService';
 import { PowerPlatformCloud, AgentType } from '@microsoft/agents-copilotstudio-client';
 import { debugTokenScope } from './debugUtils';
 import './App.css';
+
+// Lazy load ChatInterface to reduce initial bundle
+const ChatInterface = React.lazy(() => 
+  import('./components/ChatInterface').then(module => ({ default: module.ChatInterface }))
+);
+
+// Loading fallback component
+const LoadingFallback = memo(() => (
+  <div className="copilot-loading">
+    <div className="loading-spinner"></div>
+    <p>Loading chat interface...</p>
+  </div>
+));
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -36,25 +48,25 @@ const AppContent: React.FC = () => {
 
     try {
       console.log('Environment variables:', {
-        environmentId: process.env.REACT_APP_COPILOT_ENVIRONMENT_ID,
-        agentIdentifier: process.env.REACT_APP_COPILOT_AGENT_IDENTIFIER,
-        appClientId: process.env.REACT_APP_COPILOT_APP_CLIENT_ID,
-        tenantId: process.env.REACT_APP_COPILOT_TENANT_ID,
-        cloud: process.env.REACT_APP_COPILOT_CLOUD,
-        agentType: process.env.REACT_APP_COPILOT_AGENT_TYPE,
-      //  directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
+        environmentId: import.meta.env.VITE_COPILOT_ENVIRONMENT_ID,
+        agentIdentifier: import.meta.env.VITE_COPILOT_AGENT_IDENTIFIER,
+        appClientId: import.meta.env.VITE_COPILOT_APP_CLIENT_ID,
+        tenantId: import.meta.env.VITE_COPILOT_TENANT_ID,
+        cloud: import.meta.env.VITE_COPILOT_CLOUD,
+        agentType: import.meta.env.VITE_COPILOT_AGENT_TYPE,
+      //  directConnectUrl: import.meta.env.VITE_COPILOT_DIRECT_CONNECT_URL,
       });
 
       const config: CopilotStudioConfig = {
-        environmentId: process.env.REACT_APP_COPILOT_ENVIRONMENT_ID || '',
-        agentIdentifier: process.env.REACT_APP_COPILOT_AGENT_IDENTIFIER || '',
-        appClientId: process.env.REACT_APP_COPILOT_APP_CLIENT_ID || '',
-        tenantId: process.env.REACT_APP_COPILOT_TENANT_ID || '',
-        cloud: (process.env.REACT_APP_COPILOT_CLOUD as PowerPlatformCloud) || PowerPlatformCloud.Prod,
-        agentType: (process.env.REACT_APP_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
-        // directConnectUrl: process.env.REACT_APP_COPILOT_DIRECT_CONNECT_URL,
-        authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
-        useMock: process.env.REACT_APP_USE_MOCK_CLIENT === 'true',
+        environmentId: import.meta.env.VITE_COPILOT_ENVIRONMENT_ID || '',
+        agentIdentifier: import.meta.env.VITE_COPILOT_AGENT_IDENTIFIER || '',
+        appClientId: import.meta.env.VITE_COPILOT_APP_CLIENT_ID || '',
+        tenantId: import.meta.env.VITE_COPILOT_TENANT_ID || '',
+        cloud: (import.meta.env.VITE_COPILOT_CLOUD as PowerPlatformCloud) || PowerPlatformCloud.Prod,
+        agentType: (import.meta.env.VITE_COPILOT_AGENT_TYPE as AgentType) || AgentType.Published,
+        // directConnectUrl: import.meta.env.VITE_COPILOT_DIRECT_CONNECT_URL,
+        authority: `https://login.microsoftonline.com/${import.meta.env.VITE_COPILOT_TENANT_ID || 'common'}`,
+        useMock: import.meta.env.VITE_USE_MOCK_CLIENT === 'true',
       };
 
       // Debug token scope
@@ -120,7 +132,9 @@ const AppContent: React.FC = () => {
         )}
 
         {!copilotLoading && !copilotError && isInitialized && (
-          <ChatInterface welcomeMessage={welcomeMessage} />
+          <Suspense fallback={<LoadingFallback />}>
+            <ChatInterface welcomeMessage={welcomeMessage} />
+          </Suspense>
         )}
 
         {!copilotLoading && !copilotError && !isInitialized && (

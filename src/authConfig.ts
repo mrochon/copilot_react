@@ -3,10 +3,10 @@ import { Configuration, PublicClientApplication } from '@azure/msal-browser';
 // MSAL configuration
 const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.REACT_APP_CLIENT_ID || 'your-client-id-here',
-    authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID || 'common'}`,
-    redirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
-    postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI || window.location.origin,
+    clientId: import.meta.env.VITE_CLIENT_ID || 'your-client-id-here',
+    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_TENANT_ID || 'common'}`,
+    redirectUri: import.meta.env.VITE_REDIRECT_URI || window.location.origin,
+    postLogoutRedirectUri: import.meta.env.VITE_REDIRECT_URI || window.location.origin,
   },
   cache: {
     cacheLocation: 'localStorage',
@@ -46,7 +46,7 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 export const loginRequest = {
   scopes: [
     'openid', 
-    'profile'
-    //,'user.read'
+    'profile',
+    'https://api.powerplatform.com/.default'
   ],
 };
