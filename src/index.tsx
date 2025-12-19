@@ -5,37 +5,33 @@ import { msalInstance } from './authConfig';
 import App from './App';
 import './index.css';
 
-// Initialize MSAL and handle redirects before rendering
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
+// Initialize MSAL instance
 msalInstance.initialize().then(() => {
-  // Handle redirect promise to complete authentication
+  console.log('MSAL initialized');
+  
+  // Handle redirect promise
   msalInstance.handleRedirectPromise()
     .then((response) => {
       if (response) {
         console.log('Redirect authentication successful:', response);
       }
-      
-      const root = ReactDOM.createRoot(
-        document.getElementById('root') as HTMLElement
-      );
-
-      root.render(
-        <React.StrictMode>
-          <MsalProvider instance={msalInstance}>
-            <App />
-          </MsalProvider>
-        </React.StrictMode>
-      );
     })
     .catch((error) => {
       console.error('Error handling redirect:', error);
-      
-      // Still render the app even if there's an error
-      const root = ReactDOM.createRoot(
-        document.getElementById('root') as HTMLElement
-      );
+    });
+}).catch((error) => {
+  console.error('Error initializing MSAL:', error);
+});
 
+// Render app immediately
 root.render(
-  <MsalProvider instance={msalInstance}>
-    <App />
-  </MsalProvider>
+  <React.StrictMode>
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  </React.StrictMode>
 );
