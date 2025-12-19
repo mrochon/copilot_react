@@ -76,10 +76,19 @@ REACT_APP_COPILOT_TENANT_ID=your-tenant-id-here
 REACT_APP_COPILOT_CLOUD=Prod
 REACT_APP_COPILOT_AGENT_TYPE=Published
 
-# Azure Speech Service Configuration (Optional)
+# Text-to-Speech Configuration
+# TTS_PROVIDER options: 'azure' or 'elevenlabs'
+REACT_APP_TTS_PROVIDER=azure
+
+# Azure Speech Service Configuration (when TTS_PROVIDER=azure)
 REACT_APP_SPEECH_KEY=your-azure-speech-service-key
 REACT_APP_SPEECH_REGION=eastus
 REACT_APP_SPEECH_VOICE=en-US-JennyNeural
+
+# ElevenLabs Configuration (when TTS_PROVIDER=elevenlabs)
+REACT_APP_ELEVENLABS_API_KEY=your-elevenlabs-api-key
+REACT_APP_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+REACT_APP_ELEVENLABS_MODEL=eleven_multilingual_v2
 
 # Development/Testing Configuration
 REACT_APP_USE_MOCK_CLIENT=false
@@ -104,7 +113,11 @@ REACT_APP_USE_MOCK_CLIENT=false
    - Schema name (Agent Identifier)
    - Environment ID
 
-### 5. Azure Speech Service Setup (Optional)
+### 5. Text-to-Speech Service Setup (Optional)
+
+The application supports two TTS providers: **Azure Speech Service** and **ElevenLabs**.
+
+#### Option A: Azure Speech Service
 
 For avatar lip-sync and text-to-speech features:
 
@@ -114,8 +127,10 @@ For avatar lip-sync and text-to-speech features:
 4. Copy **Key 1** and **Region**
 5. Add these to your `.env` file:
    ```env
+   REACT_APP_TTS_PROVIDER=azure
    REACT_APP_SPEECH_KEY=your-speech-service-key
    REACT_APP_SPEECH_REGION=your-region (e.g., eastus)
+   REACT_APP_SPEECH_VOICE=en-US-JennyNeural
    ```
 
 **Supported Voices**: The application supports all Azure Neural voices. Popular options:
@@ -125,7 +140,68 @@ For avatar lip-sync and text-to-speech features:
 - `en-GB-SoniaNeural` (British female)
 - `en-AU-NatashaNeural` (Australian female)
 
-**Note**: If Azure Speech Service is not configured, the avatar will still display but without voice and lip-sync.
+**Advantages**: Provides accurate viseme data for high-quality lip synchronization.
+
+#### Option B: ElevenLabs
+
+For high-quality, natural-sounding speech:
+
+1. Go to [ElevenLabs](https://elevenlabs.io/)
+2. Sign up for an account
+3. Go to Settings > API Keys
+4. Generate and copy your API key
+5. Browse the [Voice Library](https://elevenlabs.io/app/voice-library) to find a voice ID
+6. Add these to your `.env` file:
+   ```env
+   REACT_APP_TTS_PROVIDER=elevenlabs
+   REACT_APP_ELEVENLABS_API_KEY=your-elevenlabs-api-key
+   REACT_APP_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+   REACT_APP_ELEVENLABS_MODEL=eleven_multilingual_v2
+   ```
+
+**Popular Voice IDs**:
+- `21m00Tcm4TlvDq8ikWAM` - Rachel (default, female, American)
+- `EXAVITQu4vr4xnSDxMaL` - Bella (female, American)
+- `pNInz6obpgDQGcFmaJgB` - Adam (male, American)
+
+**Available Models**:
+- `eleven_multilingual_v2` (default) - Supports 29 languages
+- `eleven_monolingual_v1` - English only, faster
+- `eleven_turbo_v2` - Fastest, lower latency
+
+**Advantages**: Superior voice quality and naturalness. Lower latency with turbo models.
+
+**Note**: ElevenLabs uses approximated viseme data, so lip-sync may be less accurate than Azure Speech Service.
+
+**Important for Voice Input**: If you want to use voice input (microphone) to talk to the agent, you must configure Azure Speech Service even when using ElevenLabs for voice output. Voice recognition always requires Azure Speech Service, regardless of your TTS provider choice. Simply add both configurations to your `.env` file:
+```env
+# For voice OUTPUT (choose one)
+REACT_APP_TTS_PROVIDER=elevenlabs
+REACT_APP_ELEVENLABS_API_KEY=your-key
+
+# For voice INPUT (always required for microphone)
+REACT_APP_SPEECH_KEY=your-azure-key
+REACT_APP_SPEECH_REGION=eastus
+```
+
+#### Choosing a TTS Provider
+
+| Feature | Azure Speech Service | ElevenLabs |
+|---------|---------------------|------------|
+| **Voice Quality** | Very good, natural | Excellent, highly natural |
+| **Lip-Sync Accuracy** | Excellent (real visemes) | Good (approximated) |
+| **Latency** | Low | Very low (with turbo) |
+| **Languages** | 100+ | 29 |
+| **Custom Voices** | Yes (via Azure Foundry) | Yes (voice cloning) |
+| **Pricing** | Pay per character | Subscription + characters |
+| **Setup Complexity** | Moderate | Easy |
+
+**Recommendation**: 
+- Use **Azure Speech Service** if lip-sync accuracy is critical
+- Use **ElevenLabs** if voice quality and naturalness are top priorities
+- Both providers work seamlessly - switch anytime by changing the environment variable
+
+**Note**: If TTS is not configured, the avatar will still display but without voice and lip-sync.
 
 ### 6. Avatar Photo Setup (Optional)
 
@@ -175,10 +251,13 @@ src/
 │   ├── MessageInput.tsx       # Message input component
 │   └── MessageList.tsx        # Message display component
 ├── hooks/
-│   └── useSpeechAvatar.ts     # Speech avatar integration hook
+│   ├── useSpeechAvatar.ts     # Speech avatar integration hook
+│   └── useSpeechRecognition.ts # Speech recognition hook
 ├── AuthContext.tsx            # MSAL authentication context
 ├── authConfig.ts              # MSAL configuration
-├── AzureSpeechService.ts      # Azure Speech Service integration
+├── TTSService.ts              # TTS service interface
+├── AzureSpeechService.ts      # Azure Speech Service implementation
+├── ElevenLabsTTSService.ts    # ElevenLabs TTS implementation
 ├── CopilotStudioService.ts    # Copilot Studio client service
 ├── MockCopilotStudioClient.ts # Mock client for testing
 ├── debugUtils.ts              # Debugging utilities
@@ -197,16 +276,24 @@ An animated human-like avatar that:
 - Shows listening and speaking states
 - Provides visual feedback during conversations
 
-### AzureSpeechService
+### Text-to-Speech Services
+The application supports two TTS providers:
+
+#### AzureSpeechService
 Integration with Azure Speech Service that:
 - Converts text responses to natural speech
-- Generates viseme data for lip synchronization
+- Generates accurate viseme data for lip synchronization
 - Supports multiple neural voices
 - Handles audio playback and timing
+- Custom voice training available via Azure Foundry->Fine-tuning->AI Service Fine-tuning
 
-#### Custom voice
-
-1. Foundry->Fine-tuning->AI Service Fine-tuning
+#### ElevenLabsTTSService
+Integration with ElevenLabs API that:
+- Provides highly natural and expressive speech synthesis
+- Supports 29 languages with multilingual models
+- Offers low-latency turbo models
+- Uses approximated visemes for lip synchronization
+- Extensive voice library with customizable options
 
 ### AuthContext
 Manages MSAL authentication state and provides login/logout functionality.
@@ -220,10 +307,11 @@ Main chat UI with message history, real-time messaging, typing indicators, and i
 
 ### useSpeechAvatar Hook
 Custom React hook that:
-- Manages Azure Speech Service integration
+- Manages TTS service integration (Azure or ElevenLabs)
 - Handles speech synthesis with viseme data
 - Provides loading and error states
 - Coordinates audio playback timing
+- Automatically selects TTS provider based on environment configuration
 
 ## Authentication Flow
 
@@ -254,6 +342,13 @@ Custom React hook that:
 4. **'Hello' not spoke on initial load.**
    - Select the Key or I icon in address bar and change site permissions to allow play at load (Sound->Allow)
 
+5. **TTS Service Errors**
+   - Verify `REACT_APP_TTS_PROVIDER` is set to either 'azure' or 'elevenlabs'
+   - For Azure: Check `REACT_APP_SPEECH_KEY` and `REACT_APP_SPEECH_REGION` are correct
+   - For ElevenLabs: Verify `REACT_APP_ELEVENLABS_API_KEY` is valid
+   - Check browser console for detailed error messages
+   - Ensure API keys have proper permissions and quota
+
 ### Getting Help
 
 - Check the browser console for detailed error messages
@@ -263,8 +358,10 @@ Custom React hook that:
 ## Avatar Features
 
 ### Lip-Sync Technology
-The avatar uses Azure Speech Service's viseme data to provide accurate lip synchronization:
+The avatar uses viseme data from TTS providers to synchronize lip movements:
 
+- **Azure Speech Service**: Provides accurate, real-time viseme data for precise lip synchronization
+- **ElevenLabs**: Uses approximated viseme data based on text analysis for natural-looking lip movements
 - **Visemes**: Speech sounds mapped to mouth shapes
 - **Real-time sync**: Mouth movements match audio timing
 - **Natural animation**: Smooth transitions between mouth shapes
@@ -290,10 +387,12 @@ Set `REACT_APP_USE_MOCK_CLIENT=true` to use the mock Copilot Studio client:
 - Simulates conversation flow
 - Perfect for development and demos
 
-#### Speech Service Testing
-- Works without Azure Speech Service (silent avatar)
+#### TTS Service Testing
+- Works without TTS service configured (silent avatar)
+- Easily switch between Azure and ElevenLabs by changing environment variable
 - Graceful degradation when service unavailable
 - Detailed error reporting and user feedback
+- Mock client mode works independently of TTS configuration
 
 ## Dependencies
 
@@ -301,6 +400,7 @@ Set `REACT_APP_USE_MOCK_CLIENT=true` to use the mock Copilot Studio client:
 - **@microsoft/agents-copilotstudio-client**: Official Copilot Studio SDK
 - **@azure/msal-browser & @azure/msal-react**: Microsoft Authentication Library
 - **microsoft-cognitiveservices-speech-sdk**: Azure Speech Service SDK
+- **@elevenlabs/elevenlabs-js**: ElevenLabs TTS SDK (optional)
 - **TypeScript**: Type safety and better development experience
 - **UUID**: Unique identifier generation for messages
 
