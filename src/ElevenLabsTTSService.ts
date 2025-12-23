@@ -90,7 +90,7 @@ export class ElevenLabsTTSService implements TTSService {
     }
   }
 
-  async synthesizeSpeechOnly(text: string): Promise<ArrayBuffer> {
+  async synthesizeSpeechOnly(text: string): Promise<{ audioBuffer: ArrayBuffer; duration: number }> {
     if (!this.client || !this.voiceId) {
       throw new Error('ElevenLabs service not initialized');
     }
@@ -124,8 +124,12 @@ export class ElevenLabsTTSService implements TTSService {
         offset += chunk.length;
       }
 
+      const duration = this.estimateAudioDuration(preparedText);
       console.log('ElevenLabs speech synthesis completed');
-      return audioData.buffer;
+      return {
+        audioBuffer: audioData.buffer,
+        duration
+      };
     } catch (error) {
       console.error('ElevenLabs speech synthesis error:', error);
       throw new Error(`Failed to synthesize speech with ElevenLabs: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -125,13 +125,8 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   }, [provider, config.speechKey, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
 
   // Speak text with lip-sync
-<<<<<<< HEAD
   const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
-    if (!state.isInitialized) {
-=======
-  const speakWithLipSync = useCallback(async (text: string): Promise<void> => {
     if (!state.isInitialized || !ttsService) {
->>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
       throw new Error('Speech service not initialized');
     }
 
@@ -173,19 +168,14 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   }, [state.isInitialized, ttsService]);
 
   // Speak text without lip-sync (faster)
-<<<<<<< HEAD
-  const speakWithoutLipSync = useCallback(async (text: string): Promise<number> => {
-    if (!state.isInitialized) {
-=======
   const speakWithoutLipSync = useCallback(async (text: string): Promise<void> => {
     if (!state.isInitialized || !ttsService) {
->>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
       throw new Error('Speech service not initialized');
     }
 
     if (!text.trim()) {
       console.warn('Empty text provided for speech synthesis');
-      return 0;
+      return;
     }
 
     setState(prev => ({ 
@@ -197,11 +187,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     try {
       console.log('Synthesizing speech (no visemes) for text:', text);
       
-<<<<<<< HEAD
-      const result = await azureSpeechService.synthesizeSpeechOnly(text);
-=======
-      const audioBuffer = await ttsService.synthesizeSpeechOnly(text);
->>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
+      const result = await ttsService.synthesizeSpeechOnly(text);
       
       setState(prev => ({ 
         ...prev, 
@@ -211,7 +197,6 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       }));
 
       console.log('Speech synthesis completed (no lip-sync)');
-      return result.duration;
     } catch (error) {
       console.error('Speech synthesis failed:', error);
       setState(prev => ({ 
@@ -219,7 +204,6 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         isLoading: false,
         error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }));
-      return 0;
     }
   }, [state.isInitialized, ttsService]);
 

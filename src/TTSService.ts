@@ -13,6 +13,6 @@ export interface TTSResult {
 export interface TTSService {
   initialize(config: any): void;
   synthesizeSpeechWithVisemes(text: string): Promise<TTSResult>;
-  synthesizeSpeechOnly(text: string): Promise<ArrayBuffer>;
+  synthesizeSpeechOnly(text: string): Promise<{ audioBuffer: ArrayBuffer; duration: number }>;
   dispose(): void;
 }
