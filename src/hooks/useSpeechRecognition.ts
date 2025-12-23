@@ -196,7 +196,7 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
         ...prev,
         isRecording: false,
         error: errorMessage.startsWith('Speech service not initialized')
-          ? 'Voice capture is unavailable. Please configure Azure Speech Service in the .env file.'
+          ? 'Voice input requires Azure Speech Service. Please set REACT_APP_SPEECH_KEY and REACT_APP_SPEECH_REGION in your .env file. Note: Voice input always uses Azure Speech Service, regardless of TTS provider selection.'
           : `Failed to access microphone: ${errorMessage}`
       }));
       cleanupRecognizer();

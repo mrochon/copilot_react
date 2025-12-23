@@ -21,11 +21,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<AvatarRef>(null);
 
-  // Initialize speech avatar
+  // Initialize speech avatar with TTS provider
+  const ttsProvider = (import.meta.env.VITE_TTS_PROVIDER || 'azure') as 'azure' | 'elevenlabs';
+  
   const speechAvatar = useSpeechAvatar({
+    ttsProvider,
+    // Azure configuration
     speechKey: import.meta.env.VITE_SPEECH_KEY || '',
     speechRegion: import.meta.env.VITE_SPEECH_REGION || 'eastus',
-    voiceName: import.meta.env.VITE_SPEECH_VOICE || 'en-US-JennyNeural'
+    voiceName: import.meta.env.VITE_SPEECH_VOICE || 'en-US-JennyNeural',
+    // ElevenLabs configuration
+    elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
+    elevenLabsVoiceId: import.meta.env.VITE_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
+    elevenLabsModel: import.meta.env.VITE_ELEVENLABS_MODEL || 'eleven_multilingual_v2'
   });
 
   const {

@@ -1,10 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { azureSpeechService, VisemeData } from '../AzureSpeechService';
+import { azureSpeechService } from '../AzureSpeechService';
+import { elevenLabsTTSService } from '../ElevenLabsTTSService';
+import { TTSService } from '../TTSService';
+import type { VisemeData } from '../TTSService';
+
+type TTSProvider = 'azure' | 'elevenlabs';
 
 interface UseSpeechAvatarConfig {
-  speechKey: string;
-  speechRegion: string;
+  ttsProvider?: TTSProvider;
+  // Azure-specific config
+  speechKey?: string;
+  speechRegion?: string;
   voiceName?: string;
+  // ElevenLabs-specific config
+  elevenLabsApiKey?: string;
+  elevenLabsVoiceId?: string;
+  elevenLabsModel?: string;
 }
 
 interface SpeechAvatarState {
@@ -26,31 +37,72 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     audioBuffer: null
   });
 
+  const [ttsService, setTtsService] = useState<TTSService | null>(null);
+  const provider = config.ttsProvider || 'azure';
+
   // Initialize speech service
   useEffect(() => {
     const initializeSpeech = async () => {
       try {
-        if (!config.speechKey || config.speechKey === 'YOUR_AZURE_SPEECH_KEY') {
-          setState(prev => ({ 
-            ...prev, 
-            error: 'Azure Speech Service key not configured. Please set REACT_APP_SPEECH_KEY in your .env file.' 
-          }));
-          return;
+        let service: TTSService;
+
+        if (provider === 'elevenlabs') {
+          // Initialize ElevenLabs for TTS
+          if (!config.elevenLabsApiKey || config.elevenLabsApiKey === 'YOUR_ELEVENLABS_API_KEY') {
+            setState(prev => ({ 
+              ...prev, 
+              error: 'ElevenLabs API key not configured. Please set REACT_APP_ELEVENLABS_API_KEY in your .env file.' 
+            }));
+            return;
+          }
+
+          elevenLabsTTSService.initialize({
+            apiKey: config.elevenLabsApiKey,
+            voiceId: config.elevenLabsVoiceId || '21m00Tcm4TlvDq8ikWAM',
+            model: config.elevenLabsModel || 'eleven_multilingual_v2'
+          });
+
+          service = elevenLabsTTSService;
+          console.log('ElevenLabs TTS service initialized successfully');
+
+          // Also initialize Azure Speech Service for speech recognition (voice input)
+          // even when using ElevenLabs for TTS (voice output)
+          if (config.speechKey && config.speechKey !== 'YOUR_AZURE_SPEECH_KEY') {
+            azureSpeechService.initialize({
+              subscriptionKey: config.speechKey,
+              region: config.speechRegion || 'eastus',
+              voiceName: config.voiceName || 'en-US-JennyNeural'
+            });
+            console.log('Azure Speech Service also initialized for voice input/recognition');
+          }
+        } else {
+          // Initialize Azure Speech for both TTS and recognition
+          if (!config.speechKey || config.speechKey === 'YOUR_AZURE_SPEECH_KEY') {
+            setState(prev => ({ 
+              ...prev, 
+              error: 'Azure Speech Service key not configured. Please set REACT_APP_SPEECH_KEY in your .env file.' 
+            }));
+            return;
+          }
+
+          azureSpeechService.initialize({
+            subscriptionKey: config.speechKey,
+            region: config.speechRegion || 'eastus',
+            voiceName: config.voiceName || 'en-US-JennyNeural'
+          });
+
+          service = azureSpeechService;
+          console.log('Azure Speech Service initialized successfully');
         }
 
-        azureSpeechService.initialize({
-          subscriptionKey: config.speechKey,
-          region: config.speechRegion,
-          voiceName: config.voiceName || 'en-US-JennyNeural'
-        });
-
+        setTtsService(service);
         setState(prev => ({ 
           ...prev, 
           isInitialized: true, 
           error: null 
         }));
 
-        console.log('Speech avatar service initialized successfully');
+        console.log(`Speech avatar service initialized successfully with provider: ${provider}`);
       } catch (error) {
         console.error('Failed to initialize speech service:', error);
         setState(prev => ({ 
@@ -64,13 +116,22 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
 
     // Cleanup on unmount
     return () => {
-      azureSpeechService.dispose();
+      if (provider === 'azure') {
+        azureSpeechService.dispose();
+      } else if (provider === 'elevenlabs') {
+        elevenLabsTTSService.dispose();
+      }
     };
-  }, [config.speechKey, config.speechRegion, config.voiceName]);
+  }, [provider, config.speechKey, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
 
   // Speak text with lip-sync
+<<<<<<< HEAD
   const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized) {
+=======
+  const speakWithLipSync = useCallback(async (text: string): Promise<void> => {
+    if (!state.isInitialized || !ttsService) {
+>>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
       throw new Error('Speech service not initialized');
     }
 
@@ -88,7 +149,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     try {
       console.log('Synthesizing speech with visemes for text:', text);
       
-      const result = await azureSpeechService.synthesizeSpeechWithVisemes(text);
+      const result = await ttsService.synthesizeSpeechWithVisemes(text);
       
       console.log(`Speech synthesis completed. Duration: ${result.duration}ms, Visemes: ${result.visemeData.length}, AudioBuffer size: ${result.audioBuffer.byteLength}`);
       
@@ -109,11 +170,16 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       }));
       return 0;
     }
-  }, [state.isInitialized]);
+  }, [state.isInitialized, ttsService]);
 
   // Speak text without lip-sync (faster)
+<<<<<<< HEAD
   const speakWithoutLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized) {
+=======
+  const speakWithoutLipSync = useCallback(async (text: string): Promise<void> => {
+    if (!state.isInitialized || !ttsService) {
+>>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
       throw new Error('Speech service not initialized');
     }
 
@@ -131,7 +197,11 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     try {
       console.log('Synthesizing speech (no visemes) for text:', text);
       
+<<<<<<< HEAD
       const result = await azureSpeechService.synthesizeSpeechOnly(text);
+=======
+      const audioBuffer = await ttsService.synthesizeSpeechOnly(text);
+>>>>>>> a06d21594a9e19efda4918cdb15a18e0d945f746
       
       setState(prev => ({ 
         ...prev, 
@@ -151,7 +221,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       }));
       return 0;
     }
-  }, [state.isInitialized]);
+  }, [state.isInitialized, ttsService]);
 
   // Speech event handlers
   const handleSpeechStart = useCallback(() => {

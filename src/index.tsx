@@ -9,8 +9,29 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
+// Initialize MSAL instance
+msalInstance.initialize().then(() => {
+  console.log('MSAL initialized');
+  
+  // Handle redirect promise
+  msalInstance.handleRedirectPromise()
+    .then((response) => {
+      if (response) {
+        console.log('Redirect authentication successful:', response);
+      }
+    })
+    .catch((error) => {
+      console.error('Error handling redirect:', error);
+    });
+}).catch((error) => {
+  console.error('Error initializing MSAL:', error);
+});
+
+// Render app immediately
 root.render(
-  <MsalProvider instance={msalInstance}>
-    <App />
-  </MsalProvider>
+  <React.StrictMode>
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  </React.StrictMode>
 );
