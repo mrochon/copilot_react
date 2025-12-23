@@ -144,7 +144,7 @@ export class AzureSpeechService {
     return new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
   }
 
-  async synthesizeSpeechOnly(text: string): Promise<ArrayBuffer> {
+  async synthesizeSpeechOnly(text: string): Promise<{ audioBuffer: ArrayBuffer; duration: number }> {
     if (!this.synthesizer) {
       throw new Error('Speech service not initialized');
     }
@@ -161,8 +161,12 @@ export class AzureSpeechService {
           this.activeSynthesisPromises.delete(promiseState);
           
           if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-            console.log('Speech synthesis completed');
-            resolve(result.audioData);
+            const duration = result.audioDuration / 10000; // Convert to milliseconds
+            console.log(`Speech synthesis completed. Duration: ${duration}ms`);
+            resolve({
+              audioBuffer: result.audioData,
+              duration
+            });
           } else {
             console.error('Speech synthesis failed:', result.errorDetails);
             reject(new Error(result.errorDetails));
@@ -181,12 +185,6 @@ export class AzureSpeechService {
   }
 
   private prepareSpeechInput(text: string): string {
-    // Truncate text by removing portion starting with '*Source:*'
-    const sourceIndex = text.indexOf('*Source:*');
-    if (sourceIndex !== -1) {
-      text = text.substring(0, sourceIndex).trim();
-      text = text + ' Please check references below for more information';
-    }
     text = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

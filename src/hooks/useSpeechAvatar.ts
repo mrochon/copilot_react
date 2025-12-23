@@ -69,14 +69,14 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   }, [config.speechKey, config.speechRegion, config.voiceName]);
 
   // Speak text with lip-sync
-  const speakWithLipSync = useCallback(async (text: string): Promise<void> => {
+  const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized) {
       throw new Error('Speech service not initialized');
     }
 
     if (!text.trim()) {
       console.warn('Empty text provided for speech synthesis');
-      return;
+      return 0;
     }
 
     setState(prev => ({ 
@@ -98,6 +98,8 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         visemeData: result.visemeData,
         audioBuffer: result.audioBuffer
       }));
+
+      return result.duration;
     } catch (error) {
       console.error('Speech synthesis failed:', error);
       setState(prev => ({ 
@@ -105,18 +107,19 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         isLoading: false,
         error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }));
+      return 0;
     }
   }, [state.isInitialized]);
 
   // Speak text without lip-sync (faster)
-  const speakWithoutLipSync = useCallback(async (text: string): Promise<void> => {
+  const speakWithoutLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized) {
       throw new Error('Speech service not initialized');
     }
 
     if (!text.trim()) {
       console.warn('Empty text provided for speech synthesis');
-      return;
+      return 0;
     }
 
     setState(prev => ({ 
@@ -128,16 +131,17 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     try {
       console.log('Synthesizing speech (no visemes) for text:', text);
       
-      const audioBuffer = await azureSpeechService.synthesizeSpeechOnly(text);
+      const result = await azureSpeechService.synthesizeSpeechOnly(text);
       
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
         visemeData: [],
-        audioBuffer
+        audioBuffer: result.audioBuffer
       }));
 
       console.log('Speech synthesis completed (no lip-sync)');
+      return result.duration;
     } catch (error) {
       console.error('Speech synthesis failed:', error);
       setState(prev => ({ 
@@ -145,6 +149,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         isLoading: false,
         error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }));
+      return 0;
     }
   }, [state.isInitialized]);
 
