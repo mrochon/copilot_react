@@ -88,6 +88,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
   const [inputResetToken, setInputResetToken] = useState(0);
   const hasSpokenWelcomeRef = useRef(false);
 
+  const cleanTextForSpeech = useCallback((text: string) => {
+    return text
+      .replace(/\[\d+\](\([^\)]+\))?/g, '')    // Remove citation links like [1] or [1](URL)
+      .replace(/\^(\d+)\^/g, '')               // Remove superscript citations like ^1^
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Keep filename for other links like [File.pdf](URL)
+      .replace(/(https?:\/\/[^\s]+)/g, '')     // Strip standalone URLs
+      .replace(/\*Source:\*/gi, "Source: ")    // Make Source label sound natural
+      .replace(/EZCORP/gi, "easy corp")
+      .replace(/:/g, ", ");
+  }, []);
+
   // Add initial welcome message on mount
   useEffect(() => {
     if (welcomeMessage) {
@@ -109,23 +120,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       
       // Use setTimeout to ensure Avatar component is ready
       const timeoutId = setTimeout(() => {
-        speakWithLipSync(welcomeMessage).catch((error) => {
-          console.error('Failed to speak welcome message:', error);
-          hasSpokenWelcomeRef.current = false; // Reset so it can try again
-        });
+        speakWithLipSync(cleanTextForSpeech(welcomeMessage))
+          .then(duration => {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              if (newMessages.length > 0 && !newMessages[0].isUser) {
+                newMessages[0] = { ...newMessages[0], typingDuration: duration };
+              }
+              return newMessages;
+            });
+          })
+          .catch((error) => {
+            console.error('Failed to speak welcome message:', error);
+            hasSpokenWelcomeRef.current = false; // Reset so it can try again
+          });
       }, 100);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync, cleanTextForSpeech]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     // Stop any ongoing speech when user sends a new message (interruption)
@@ -145,50 +158,60 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
     setIsListening(true); // Show listening state
 
     try {
-      const response = await sendMessage(text);
-      
+      const rawResponse = await sendMessage(text);
+      const cleanResponse = rawResponse.replace(/<\/?[^>]+(>|$)/g, "");
+
+      let duration = 0;
+      if (isSpeechInitialized) {
+        const speechText = cleanTextForSpeech(cleanResponse);
+        
+        duration = await speakWithLipSync(speechText).catch(speechError => {
+          console.warn('Speech synthesis failed, continuing without audio:', speechError);
+          return 0;
+        });
+      }
+
       const botMessage: ChatMessage = {
         id: uuidv4(),
-        text: response,
+        text: cleanResponse,
         isUser: false,
         timestamp: new Date(),
+        typingDuration: duration > 0 ? duration : undefined
       };
 
       setMessages(prev => [...prev, botMessage]);
-
-      // Speak the response with lip-sync if speech service is available
-      if (isSpeechInitialized) {
-        try {
-          await speakWithLipSync(response);
-        } catch (speechError) {
-          console.warn('Speech synthesis failed, continuing without audio:', speechError);
-        }
-      }
     } catch (error) {
       console.error('Error sending message:', error);
       
+      const errorText = "I'm sorry, I encountered an error while processing your message. Please try again.";
+      let duration = 0;
+      
+      if (isSpeechInitialized) {
+        duration = await speakWithLipSync(cleanTextForSpeech(errorText)).catch(() => 0);
+      }
+
       const errorMessage: ChatMessage = {
         id: uuidv4(),
-        text: "I'm sorry, I encountered an error while processing your message. Please try again.",
+        text: errorText,
         isUser: false,
         timestamp: new Date(),
+        typingDuration: duration > 0 ? duration : undefined
       };
 
       setMessages(prev => [...prev, errorMessage]);
-
-      // Speak error message
-      if (isSpeechInitialized) {
-        try {
-          await speakWithLipSync(errorMessage.text);
-        } catch (speechError) {
-          console.warn('Speech synthesis failed for error message:', speechError);
-        }
-      }
     } finally {
       setIsTyping(false);
       setIsListening(false); // Hide listening state
     }
-  }, [isAvatarSpeaking, isSpeechInitialized, speakWithLipSync, sendMessage]);
+  }, [isAvatarSpeaking, isSpeechInitialized, sendMessage, speakWithLipSync, cleanTextForSpeech]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (!isVoiceRecording && voiceFinalResult.trim()) {

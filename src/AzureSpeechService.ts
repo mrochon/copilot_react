@@ -139,7 +139,7 @@ export class AzureSpeechService implements TTSService {
     return new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
   }
 
-  async synthesizeSpeechOnly(text: string): Promise<ArrayBuffer> {
+  async synthesizeSpeechOnly(text: string): Promise<{ audioBuffer: ArrayBuffer; duration: number }> {
     if (!this.synthesizer) {
       throw new Error('Speech service not initialized');
     }
@@ -156,8 +156,12 @@ export class AzureSpeechService implements TTSService {
           this.activeSynthesisPromises.delete(promiseState);
           
           if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-            console.log('Speech synthesis completed');
-            resolve(result.audioData);
+            const duration = result.audioDuration / 10000; // Convert to milliseconds
+            console.log(`Speech synthesis completed. Duration: ${duration}ms`);
+            resolve({
+              audioBuffer: result.audioData,
+              duration
+            });
           } else {
             console.error('Speech synthesis failed:', result.errorDetails);
             reject(new Error(result.errorDetails));
