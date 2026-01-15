@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, memo } from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
 import { LoginComponent } from './components/LoginComponent';
+import { DisclaimerModal } from './components/DisclaimerModal';
 import { useCopilotStudio, CopilotStudioConfig } from './CopilotStudioService';
 import { PowerPlatformCloud, AgentType } from '@microsoft/agents-copilotstudio-client';
 import { debugTokenScope } from './debugUtils';
@@ -25,6 +26,15 @@ const AppContent: React.FC = () => {
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+
+  // Show disclaimer when user first authenticates
+  useEffect(() => {
+    if (isAuthenticated && !disclaimerAccepted) {
+      setShowDisclaimer(true);
+    }
+  }, [isAuthenticated, disclaimerAccepted]);
 
   // Reset service when user logs out
   useEffect(() => {
@@ -33,14 +43,16 @@ const AppContent: React.FC = () => {
       resetService();
       setCopilotError(null);
       setCopilotLoading(false);
+      setDisclaimerAccepted(false);
+      setShowDisclaimer(false);
     }
   }, [isAuthenticated, resetService]);
 
   useEffect(() => {
-    if (isAuthenticated && !isInitialized && !copilotLoading) {
+    if (isAuthenticated && disclaimerAccepted && !isInitialized && !copilotLoading) {
       initializeCopilotStudio();
     }
-  }, [isAuthenticated, isInitialized, copilotLoading]);
+  }, [isAuthenticated, disclaimerAccepted, isInitialized, copilotLoading]);
 
   const initializeCopilotStudio = async () => {
     setCopilotLoading(true);
@@ -107,6 +119,15 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app-container">
+      {showDisclaimer && (
+        <DisclaimerModal 
+          onContinue={() => {
+            setShowDisclaimer(false);
+            setDisclaimerAccepted(true);
+          }}
+        />
+      )}
+
       <header className="app-header">
         <h1>Copilot Studio Chat</h1>
         <div className="user-info">
@@ -137,7 +158,7 @@ const AppContent: React.FC = () => {
           </Suspense>
         )}
 
-        {!copilotLoading && !copilotError && !isInitialized && (
+        {!copilotLoading && !copilotError && !isInitialized && disclaimerAccepted && (
           <div className="initialization-prompt">
             <p>Copilot Studio is not initialized.</p>
             <button onClick={initializeCopilotStudio} className="init-button">
