@@ -45,8 +45,9 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 // Login request configuration
 export const loginRequest = {
   scopes: [
-    'openid', 
+    'openid',
     'profile',
+    'User.Read',
     'https://api.powerplatform.com/.default'
   ],
 };

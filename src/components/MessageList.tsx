@@ -5,14 +5,17 @@ import { ChatMessage } from '../CopilotStudioService';
 interface MessageListProps {
   messages: ChatMessage[];
   isTyping: boolean;
+  userPhotoUrl?: string;
+  onContentChange?: () => void;
 }
 
-const TypedMessage: React.FC<{ text: string; duration: number }> = ({ text, duration }) => {
+const TypedMessage: React.FC<{ text: string; duration: number; onContentChange?: () => void }> = ({ text, duration, onContentChange }) => {
   const [displayedText, setDisplayedText] = useState('');
-  
+
   useEffect(() => {
     if (!duration || duration <= 0) {
       setDisplayedText(text);
+      if (onContentChange) onContentChange();
       return;
     }
 
@@ -23,8 +26,12 @@ const TypedMessage: React.FC<{ text: string; duration: number }> = ({ text, dura
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const currentLength = Math.floor(progress * text.length);
-      
+
       setDisplayedText(text.substring(0, currentLength));
+
+      if (onContentChange) {
+        onContentChange();
+      }
 
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
@@ -33,12 +40,12 @@ const TypedMessage: React.FC<{ text: string; duration: number }> = ({ text, dura
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [text, duration]);
+  }, [text, duration, onContentChange]);
 
   return <ReactMarkdown>{displayedText}</ReactMarkdown>;
 };
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) => {
+export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, userPhotoUrl, onContentChange }) => {
   return (
     <div className="message-list">
       {messages.map((message, index) => (
@@ -51,7 +58,11 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
               {message.isUser ? (
                 message.text
               ) : (message.typingDuration && index === messages.length - 1) ? (
-                <TypedMessage text={message.text} duration={message.typingDuration} />
+                <TypedMessage
+                  text={message.text}
+                  duration={message.typingDuration}
+                  onContentChange={onContentChange}
+                />
               ) : (
                 <ReactMarkdown>{message.text}</ReactMarkdown>
               )}
@@ -60,9 +71,14 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
               {message.timestamp.toLocaleTimeString()}
             </div>
           </div>
+          {message.isUser && userPhotoUrl && (
+            <div className="message-user-avatar">
+              <img src={userPhotoUrl} alt="User" />
+            </div>
+          )}
         </div>
       ))}
-      
+
       {isTyping && (
         <div className="message message-bot">
           <div className="message-content">

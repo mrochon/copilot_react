@@ -11,6 +11,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   getAccessToken: (config?: any) => Promise<string | null>;
+  userPhotoUrl: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { instance, accounts, inProgress } = useMsal();
   const [user, setUser] = useState<AccountInfo | null>(null);
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,11 +31,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (accounts.length > 0) {
       console.log('Setting user from MSAL accounts:', accounts[0].username);
       setUser(accounts[0]);
+      void fetchUserPhoto(accounts[0]);
     } else {
       setUser(null);
+      setUserPhotoUrl(null);
     }
     setIsLoading(false);
   }, [accounts]);
+
+  const fetchUserPhoto = async (account: AccountInfo) => {
+    try {
+      const tokenRequest = {
+        scopes: ['User.Read'],
+        account: account
+      };
+
+      const response = await instance.acquireTokenSilent(tokenRequest);
+
+      const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+        headers: {
+          Authorization: `Bearer ${response.accessToken}`
+        }
+      });
+
+      if (photoResponse.ok) {
+        const photoBlob = await photoResponse.blob();
+        const photoUrl = URL.createObjectURL(photoBlob);
+        setUserPhotoUrl(photoUrl);
+        console.log('User photo fetched successfully');
+      } else {
+        console.warn('Failed to fetch user photo:', photoResponse.statusText);
+      }
+    } catch (error) {
+      console.warn('Error fetching user photo:', error);
+    }
+  };
 
   const login = async (): Promise<void> => {
     try {
@@ -44,14 +76,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         authority: instance.getConfiguration().auth.authority,
         redirectUri: instance.getConfiguration().auth.redirectUri
       });
-      
+
       const response: AuthenticationResult = await instance.loginPopup({
         ...loginRequest,
         redirectUri: window.location.origin, // Explicitly set redirect URI
       });
-      
+
       console.log('Login successful:', response.account?.username);
-      
+
       // Pre-fetch token for Power Platform to ensure consent is granted
       try {
         const tokenRequest = {
@@ -64,7 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.warn('Could not pre-fetch Power Platform token silently:', tokenError);
         // This is OK - it will be requested interactively later if needed
       }
-      
+
       // The account will be set automatically via the useEffect above
     } catch (error) {
       console.error('Login error:', error);
@@ -81,13 +113,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       console.log('Starting logout process...');
-      
+
       // Get the current account to logout
       const currentAccount = accounts[0];
-      
+
       if (currentAccount) {
         console.log('Logging out account:', currentAccount.username);
-        
+
         // Logout with specific account to ensure proper token cleanup
         await instance.logoutPopup({
           account: currentAccount,
@@ -97,10 +129,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Fallback to generic logout if no account found
         await instance.logoutPopup();
       }
-      
+
       // Note: logoutPopup with specific account should handle token cleanup
       // MSAL will clear tokens for the logged out account automatically
-      
+
       setUser(null);
       console.log('Logout completed successfully');
     } catch (error) {
@@ -120,7 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       let tokenScope: string;
-      
+
       if (config) {
         // Use the Copilot Studio client to determine the correct token audience
         try {
@@ -133,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             directConnectUrl: config.directConnectUrl,
             authority: config.authority || 'https://login.microsoftonline.com',
           };
-          
+
           // Get the correct token audience from the Copilot Studio client
           tokenScope = CopilotStudioClient.scopeFromSettings(connectionSettings);
           console.log('Using token scope from Copilot Studio settings:', tokenScope);
@@ -159,13 +191,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return response.accessToken;
     } catch (error) {
       console.error('Error getting access token silently:', error);
-      
+
       // Check if this is a consent required error
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const isConsentRequired = errorMessage.includes('consent_required') || 
-                                errorMessage.includes('interaction_required') ||
-                                errorMessage.includes('login_required');
-      
+      const isConsentRequired = errorMessage.includes('consent_required') ||
+        errorMessage.includes('interaction_required') ||
+        errorMessage.includes('login_required');
+
       try {
         // Try to get token interactively if silent acquisition fails
         let tokenScope: string;
@@ -186,19 +218,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           tokenScope = 'https://api.powerplatform.com/.default';
         }
-        
+
         const tokenRequest = {
           scopes: [tokenScope],
           account: accounts[0],
           // Force consent prompt if consent is required
           ...(isConsentRequired && { prompt: 'consent' as any }),
         };
-        
+
         console.log('Trying interactive token acquisition with scope:', tokenScope);
         if (isConsentRequired) {
           console.log('Forcing consent prompt due to consent_required error');
         }
-        
+
         const response = await instance.acquireTokenPopup(tokenRequest);
         console.log('Interactive token acquisition successful');
         return response.accessToken;
@@ -216,6 +248,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     getAccessToken,
+    userPhotoUrl,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

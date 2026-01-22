@@ -17,13 +17,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const { sendMessage, resetService } = useCopilotStudio();
-  const { logout } = useAuth();
+  const { logout, userPhotoUrl } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<AvatarRef>(null);
 
   // Initialize speech avatar with TTS provider
   const ttsProvider = (import.meta.env.VITE_TTS_PROVIDER || 'azure') as 'azure' | 'elevenlabs';
-  
+
   const speechAvatar = useSpeechAvatar({
     ttsProvider,
     // Azure configuration
@@ -99,46 +99,59 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       .replace(/:/g, ", ");
   }, []);
 
-  // Add initial welcome message on mount
+  // Handle welcome message: Wait for speech to init, then play and show message
   useEffect(() => {
-    if (welcomeMessage) {
+    // If no welcome message, or already spoken, do nothing
+    if (!welcomeMessage || hasSpokenWelcomeRef.current) {
+      return;
+    }
+
+    // Define function to add message (with or without typing animation)
+    const addWelcomeMessage = (duration: number = 0) => {
       const welcome: ChatMessage = {
         id: uuidv4(),
         text: welcomeMessage,
         isUser: false,
         timestamp: new Date(),
+        typingDuration: duration > 0 ? duration : undefined
       };
       setMessages([welcome]);
-    }
-  }, [welcomeMessage]); // Update when welcomeMessage changes
-
-  // Speak the welcome message when speech service is initialized
-  useEffect(() => {
-    if (isSpeechInitialized && welcomeMessage && !hasSpokenWelcomeRef.current && !isAvatarSpeaking && !isSpeechLoading) {
       hasSpokenWelcomeRef.current = true;
+    };
+
+    // If speech is NOT initialized and NOT loading, we might be in a state where speech won't load
+    // (e.g. missing keys). Wait a bit and then just show the message.
+    if (!isSpeechInitialized && !isSpeechLoading && !speechAvatarError) {
+      const timeoutId = setTimeout(() => {
+        if (!hasSpokenWelcomeRef.current) {
+          console.log('Speech service not ready, showing welcome message without audio');
+          addWelcomeMessage();
+        }
+      }, 2000); // 2 second fallback
+      return () => clearTimeout(timeoutId);
+    }
+
+    // Logic when speech IS initialized
+    if (isSpeechInitialized && !isAvatarSpeaking && !isSpeechLoading) {
       console.log('Attempting to speak welcome message...');
-      
+
       // Use setTimeout to ensure Avatar component is ready
       const timeoutId = setTimeout(() => {
         speakWithLipSync(cleanTextForSpeech(welcomeMessage))
           .then(duration => {
-            setMessages(prev => {
-              const newMessages = [...prev];
-              if (newMessages.length > 0 && !newMessages[0].isUser) {
-                newMessages[0] = { ...newMessages[0], typingDuration: duration };
-              }
-              return newMessages;
-            });
+            // Speech prepared successfully, NOW show the message with typing
+            addWelcomeMessage(duration);
           })
           .catch((error) => {
             console.error('Failed to speak welcome message:', error);
-            hasSpokenWelcomeRef.current = false; // Reset so it can try again
+            // Speech failed, show message anyway without typing/audio
+            addWelcomeMessage();
           });
       }, 100);
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync, cleanTextForSpeech]);
+  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync, cleanTextForSpeech, speechAvatarError]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     // Stop any ongoing speech when user sends a new message (interruption)
@@ -155,7 +168,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
-    setIsListening(true); // Show listening state
+    // setIsListening(true); // Removed: Avatar shouldn't animate as "listening" during processing
 
     try {
       const rawResponse = await sendMessage(text);
@@ -164,7 +177,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       let duration = 0;
       if (isSpeechInitialized) {
         const speechText = cleanTextForSpeech(cleanResponse);
-        
+
         duration = await speakWithLipSync(speechText).catch(speechError => {
           console.warn('Speech synthesis failed, continuing without audio:', speechError);
           return 0;
@@ -182,10 +195,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       const errorText = "I'm sorry, I encountered an error while processing your message. Please try again.";
       let duration = 0;
-      
+
       if (isSpeechInitialized) {
         duration = await speakWithLipSync(cleanTextForSpeech(errorText)).catch(() => 0);
       }
@@ -201,7 +214,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
-      setIsListening(false); // Hide listening state
+      // setIsListening(false); // Removed
     }
   }, [isAvatarSpeaking, isSpeechInitialized, sendMessage, speakWithLipSync, cleanTextForSpeech]);
 
@@ -213,6 +226,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const scrollToBottomInstant = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, []);
+
   useEffect(() => {
     if (!isVoiceRecording && voiceFinalResult.trim()) {
       const recognizedText = voiceFinalResult.trim();
@@ -221,6 +238,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
       setInputResetToken(prev => prev + 1);
     }
   }, [handleSendMessage, isVoiceRecording, resetVoiceRecognition, voiceFinalResult]);
+
+  const handleStopSpeech = useCallback(() => {
+    avatarRef.current?.stopSpeech();
+  }, []);
+
+  // Keyboard shortcut to stop speech: Shift + S
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Shift + S
+      if (isAvatarSpeaking && event.shiftKey && (event.key === 'S' || event.key === 's')) {
+        event.preventDefault(); // Prevent default browser behavior if any
+        handleStopSpeech();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAvatarSpeaking, handleStopSpeech]);
 
   const handleStartVoice = useCallback(() => {
     // Stop any ongoing speech when user starts voice input (interruption)
@@ -235,9 +272,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
     void stopRecording();
   }, [stopRecording]);
 
-  const handleStopSpeech = useCallback(() => {
-    avatarRef.current?.stopSpeech();
-  }, []);
+
 
   const handleLogout = async () => {
     try {
@@ -258,54 +293,57 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
         </button>
       </div>
 
-      {/* Avatar Section */}
-      <div className="avatar-section">
-        <div className="avatar-controls">
-          <Avatar
-            ref={avatarRef}
-            isListening={isListening}
-            isSpeaking={isAvatarSpeaking}
-            visemeData={visemeData}
-            audioBuffer={audioBuffer || undefined}
-            imageSrc={avatarImageSrc || undefined}
-            mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
-            onSpeechStart={handleSpeechStart}
-            onSpeechEnd={handleSpeechEnd}
-          />
-          {isAvatarSpeaking && (
-            <button 
-              className="stop-speech-button"
-              onClick={handleStopSpeech}
-              aria-label="Stop speech"
-            >
-              🔇 Stop
-            </button>
-          )}
-        </div>
-        
-        {/* Speech Status */}
-        <div className="speech-status">
-          {speechAvatarError && (
-            <div className="speech-error" onClick={clearSpeechAvatarError}>
-              <small>⚠️ {speechAvatarError}</small>
-            </div>
-          )}
-          {isSpeechLoading && (
-            <div className="speech-loading">
-              <small>🔊 Preparing speech...</small>
-            </div>
-          )}
-          {!isSpeechInitialized && !speechAvatarError && (
-            <div className="speech-info">
-              <small>💡 Configure Azure Speech Service for voice responses</small>
-            </div>
-          )}
-        </div>
-      </div>
+      <div className="chat-content-wrapper">
+        {/* Avatar Section */}
+        <div className="avatar-section">
+          <div className="avatar-controls">
+            <Avatar
+              ref={avatarRef}
+              isListening={isListening}
+              isSpeaking={isAvatarSpeaking}
+              visemeData={visemeData}
+              audioBuffer={audioBuffer || undefined}
+              imageSrc={avatarImageSrc || undefined}
+              mouthConfig={avatarImageSrc ? avatarMouthConfig : undefined}
+              onSpeechStart={handleSpeechStart}
+              onSpeechEnd={handleSpeechEnd}
+            />
+          </div>
 
-      <div className="chat-container">
-        <MessageList messages={messages} isTyping={isTyping} />
-        <div ref={messagesEndRef} />
+          {/* Speech Status */}
+          <div className="speech-status">
+            {speechAvatarError && (
+              <div className="speech-error" onClick={clearSpeechAvatarError}>
+                <small>⚠️ {speechAvatarError}</small>
+              </div>
+            )}
+            {isSpeechLoading && (
+              <div className="speech-loading">
+                <small>🔊 Preparing speech...</small>
+              </div>
+            )}
+            {isTyping && !isSpeechLoading && (
+              <div className="speech-loading">
+                <small>🤔 Thinking...</small>
+              </div>
+            )}
+            {!isSpeechInitialized && !speechAvatarError && (
+              <div className="speech-info">
+                <small>💡 Configure Azure Speech Service for voice responses</small>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="chat-container">
+          <MessageList
+            messages={messages}
+            isTyping={isTyping}
+            userPhotoUrl={userPhotoUrl || undefined}
+            onContentChange={scrollToBottomInstant}
+          />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       <MessageInput
