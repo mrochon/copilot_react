@@ -74,15 +74,15 @@ export class ElevenLabsTTSService implements TTSService {
 
       // ElevenLabs doesn't provide viseme data by default
       // Generate approximate visemes based on text length and estimated duration
-      const estimatedDuration = this.estimateAudioDuration(preparedText);
-      const visemeData = this.generateApproximateVisemes(preparedText, estimatedDuration);
+      const duration = await this.getAudioDuration(audioBuffer, preparedText.length);
+      const visemeData = this.generateApproximateVisemes(preparedText, duration);
 
-      console.log(`ElevenLabs speech synthesis completed. Estimated Duration: ${estimatedDuration}ms`);
+      console.log(`ElevenLabs speech synthesis completed. Duration: ${duration}ms`);
 
       return {
         audioBuffer,
         visemeData,
-        duration: estimatedDuration
+        duration
       };
     } catch (error) {
       console.error('ElevenLabs speech synthesis error:', error);
@@ -124,7 +124,7 @@ export class ElevenLabsTTSService implements TTSService {
         offset += chunk.length;
       }
 
-      const duration = this.estimateAudioDuration(preparedText);
+      const duration = await this.getAudioDuration(audioData.buffer, preparedText.length);
       console.log('ElevenLabs speech synthesis completed');
       return {
         audioBuffer: audioData.buffer,
@@ -146,68 +146,80 @@ export class ElevenLabsTTSService implements TTSService {
     return text.trim();
   }
 
-  private estimateAudioDuration(text: string): number {
-    // Rough estimation: ~150 words per minute = ~2.5 words per second
-    // Average word length ~5 characters, so ~12.5 characters per second
-    const charCount = text.length;
-    const estimatedSeconds = charCount / 12.5;
-    return Math.round(estimatedSeconds * 1000); // Convert to milliseconds
+  private async getAudioDuration(audioBuffer: ArrayBuffer, textLength: number): Promise<number> {
+    try {
+      // Try to get exact duration using Web Audio API
+      if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const audioContext = new AudioContextClass();
+        const decodedBuffer = await audioContext.decodeAudioData(audioBuffer.slice(0));
+        await audioContext.close();
+        return decodedBuffer.duration * 1000;
+      }
+    } catch (error) {
+      console.warn('Failed to decode audio data for duration, falling back to estimation:', error);
+    }
+
+    // Fallback to estimation (updated to be slightly faster/shorter to avoid typing lag)
+    // Previous: 12.5 chars/sec
+    // New: 15 chars/sec (faster rate -> shorter duration -> typing finishes faster)
+    // It's better for typing to finish slightly early than late.
+    const estimatedSeconds = textLength / 15;
+    return Math.round(estimatedSeconds * 1000);
   }
 
+  // estimateAudioDuration is replaced by getAudioDuration
+
+
   private generateApproximateVisemes(text: string, duration: number): VisemeData[] {
-    // Generate simple viseme data based on text
-    // This is an approximation since ElevenLabs doesn't provide real viseme data
+    // Generate viseme data based on time intervals for smoother animation
+    // behaving closer to real lip-sync data
     const visemes: VisemeData[] = [];
-    const words = text.split(/\s+/);
-    const timePerWord = duration / words.length;
+    const interval = 50; // New viseme every 50ms for fluid motion
+
+    // Map of common viseme IDs for variety
+    // 0: silence, 1-21: various mouth shapes
+    const activeVisemes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 
     let currentTime = 0;
-    words.forEach((word) => {
-      // Add visemes for mouth open/close pattern
-      const visemeId = this.getApproximateVisemeId(word);
-      
+    let lastVisemeId = 0;
+
+    while (currentTime < duration) {
+      // 10% chance of a short pause (mouth closed) to simulate rhythm, but mostly keep moving
+      const isPause = Math.random() < 0.1;
+
+      let visemeId: number;
+
+      if (isPause) {
+        visemeId = 0;
+      } else {
+        // Pick a random active viseme, try to be different from last one for movement
+        do {
+          const index = Math.floor(Math.random() * activeVisemes.length);
+          visemeId = activeVisemes[index];
+        } while (visemeId === lastVisemeId && Math.random() > 0.3); // 30% chance to allow repeat
+      }
+
       visemes.push({
         audioOffset: currentTime,
         visemeId: visemeId
       });
 
-      // Add mid-word viseme
-      visemes.push({
-        audioOffset: currentTime + timePerWord / 2,
-        visemeId: (visemeId + 1) % 21 // Cycle through viseme IDs
-      });
+      lastVisemeId = visemeId;
+      currentTime += interval;
+    }
 
-      currentTime += timePerWord;
-    });
-
-    // Add final closing viseme
+    // Ensure final state is closed
     visemes.push({
       audioOffset: duration,
-      visemeId: 0 // Mouth closed
+      visemeId: 0
     });
 
     return visemes;
   }
 
-  private getApproximateVisemeId(word: string): number {
-    // Map common phonetic patterns to viseme IDs (0-20)
-    // This is a simplified approximation
-    const firstChar = word.toLowerCase().charAt(0);
-    
-    // Consonant mapping
-    const visemeMap: { [key: string]: number } = {
-      'a': 2, 'e': 4, 'i': 6, 'o': 8, 'u': 10,
-      'b': 21, 'p': 21, 'm': 21,
-      'f': 18, 'v': 18,
-      'd': 19, 't': 19, 'n': 19, 'l': 19,
-      's': 15, 'z': 15,
-      'r': 13,
-      'w': 7, 'q': 7,
-      'th': 16
-    };
-
-    return visemeMap[firstChar] || 1;
-  }
+  // Helper method removed as it is no longer used by the new time-based approach
+  // private getApproximateVisemeId(word: string): number { ... }
 
   dispose(): void {
     this.client = null;
