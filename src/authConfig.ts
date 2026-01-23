@@ -47,7 +47,6 @@ export const loginRequest = {
   scopes: [
     'openid',
     'profile',
-    'User.Read',
-    'https://api.powerplatform.com/.default'
+    'User.Read'
   ],
 };

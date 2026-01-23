@@ -10,9 +10,10 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ChatInterfaceProps {
   welcomeMessage: string;
+  isInteractionEnabled?: boolean;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, isInteractionEnabled = true }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -101,6 +102,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
 
   // Handle welcome message: Wait for speech to init, then play and show message
   useEffect(() => {
+    // If interaction is disabled, wait
+    if (!isInteractionEnabled) {
+      return;
+    }
+
     // If no welcome message, or already spoken, do nothing
     if (!welcomeMessage || hasSpokenWelcomeRef.current) {
       return;
@@ -151,7 +157,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage }) 
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync, cleanTextForSpeech, speechAvatarError]);
+  }, [isSpeechInitialized, welcomeMessage, isAvatarSpeaking, isSpeechLoading, speakWithLipSync, cleanTextForSpeech, speechAvatarError, isInteractionEnabled]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     // Stop any ongoing speech when user sends a new message (interruption)
