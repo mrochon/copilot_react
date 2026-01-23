@@ -8,7 +8,7 @@ import { debugTokenScope } from './debugUtils';
 import './App.css';
 
 // Lazy load ChatInterface to reduce initial bundle
-const ChatInterface = React.lazy(() => 
+const ChatInterface = React.lazy(() =>
   import('./components/ChatInterface').then(module => ({ default: module.ChatInterface }))
 );
 
@@ -29,12 +29,12 @@ const AppContent: React.FC = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
-  // Show disclaimer when user first authenticates
+  // Show disclaimer when user first authenticates AND Copilot is initialized
   useEffect(() => {
-    if (isAuthenticated && !disclaimerAccepted) {
+    if (isAuthenticated && isInitialized && !disclaimerAccepted) {
       setShowDisclaimer(true);
     }
-  }, [isAuthenticated, disclaimerAccepted]);
+  }, [isAuthenticated, isInitialized, disclaimerAccepted]);
 
   // Reset service when user logs out
   useEffect(() => {
@@ -49,10 +49,11 @@ const AppContent: React.FC = () => {
   }, [isAuthenticated, resetService]);
 
   useEffect(() => {
-    if (isAuthenticated && disclaimerAccepted && !isInitialized && !copilotLoading) {
+    // Initialize immediately upon authentication, do not wait for disclaimer
+    if (isAuthenticated && !isInitialized && !copilotLoading) {
       initializeCopilotStudio();
     }
-  }, [isAuthenticated, disclaimerAccepted, isInitialized, copilotLoading]);
+  }, [isAuthenticated, isInitialized, copilotLoading]);
 
   const initializeCopilotStudio = async () => {
     setCopilotLoading(true);
@@ -66,7 +67,7 @@ const AppContent: React.FC = () => {
         tenantId: import.meta.env.VITE_COPILOT_TENANT_ID,
         cloud: import.meta.env.VITE_COPILOT_CLOUD,
         agentType: import.meta.env.VITE_COPILOT_AGENT_TYPE,
-      //  directConnectUrl: import.meta.env.VITE_COPILOT_DIRECT_CONNECT_URL,
+        //  directConnectUrl: import.meta.env.VITE_COPILOT_DIRECT_CONNECT_URL,
       });
 
       const config: CopilotStudioConfig = {
@@ -120,7 +121,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="app-container">
       {showDisclaimer && (
-        <DisclaimerModal 
+        <DisclaimerModal
           onContinue={() => {
             setShowDisclaimer(false);
             setDisclaimerAccepted(true);
@@ -154,11 +155,14 @@ const AppContent: React.FC = () => {
 
         {!copilotLoading && !copilotError && isInitialized && (
           <Suspense fallback={<LoadingFallback />}>
-            <ChatInterface welcomeMessage={welcomeMessage} />
+            <ChatInterface
+              welcomeMessage={welcomeMessage}
+              isInteractionEnabled={disclaimerAccepted}
+            />
           </Suspense>
         )}
 
-        {!copilotLoading && !copilotError && !isInitialized && disclaimerAccepted && (
+        {!copilotLoading && !copilotError && !isInitialized && (
           <div className="initialization-prompt">
             <p>Copilot Studio is not initialized.</p>
             <button onClick={initializeCopilotStudio} className="init-button">
