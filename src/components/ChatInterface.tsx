@@ -12,9 +12,10 @@ import { EndChatModal } from './EndChatModal';
 interface ChatInterfaceProps {
   welcomeMessage: string;
   isInteractionEnabled?: boolean;
+  onEndSession: () => void;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, isInteractionEnabled = true }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, isInteractionEnabled = true, onEndSession }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -297,7 +298,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
     <div className="chat-interface">
       {showEndChatModal && (
         <EndChatModal
-          onCheckRemaining={() => setShowEndChatModal(false)}
+          onResume={() => setShowEndChatModal(false)}
+          onLeaveChat={onEndSession}
           chatContainerRef={chatContentRef}
         />
       )}
