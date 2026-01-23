@@ -7,6 +7,7 @@ import { Avatar, AvatarRef } from './Avatar';
 import { useAuth } from '../AuthContext';
 import { useSpeechAvatar } from '../hooks/useSpeechAvatar';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { EndChatModal } from './EndChatModal';
 
 interface ChatInterfaceProps {
   welcomeMessage: string;
@@ -21,6 +22,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   const { logout, userPhotoUrl } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<AvatarRef>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
+  const [showEndChatModal, setShowEndChatModal] = useState(false);
 
   // Initialize speech avatar with TTS provider
   const ttsProvider = (import.meta.env.VITE_TTS_PROVIDER || 'azure') as 'azure' | 'elevenlabs';
@@ -292,14 +295,29 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
 
   return (
     <div className="chat-interface">
+      {showEndChatModal && (
+        <EndChatModal
+          onCheckRemaining={() => setShowEndChatModal(false)}
+          chatContainerRef={chatContentRef}
+        />
+      )}
+
       <div className="chat-header">
         <h3>Chat with Copilot Studio</h3>
-        <button onClick={handleLogout} className="logout-button">
-          Sign Out
+        <button onClick={() => setShowEndChatModal(true)} className="end-chat-button" style={{
+          backgroundColor: '#0078d4',
+          color: 'white',
+          border: 'none',
+          padding: '0.5rem 1rem',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 600
+        }}>
+          End Chat
         </button>
       </div>
 
-      <div className="chat-content-wrapper">
+      <div className="chat-content-wrapper" ref={chatContentRef}>
         {/* Avatar Section */}
         <div className="avatar-section">
           <div className="avatar-controls">
