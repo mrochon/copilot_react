@@ -28,6 +28,7 @@ const AppContent: React.FC = () => {
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [sessionId, setSessionId] = useState(0);
 
   // Show disclaimer when user first authenticates AND Copilot is initialized
   useEffect(() => {
@@ -54,6 +55,14 @@ const AppContent: React.FC = () => {
       initializeCopilotStudio();
     }
   }, [isAuthenticated, isInitialized, copilotLoading]);
+
+  const handleEndSession = () => {
+    console.log('Ending chat session...');
+    resetService();
+    setDisclaimerAccepted(false);
+    setShowDisclaimer(true);
+    setSessionId(prev => prev + 1);
+  };
 
   const initializeCopilotStudio = async () => {
     setCopilotLoading(true);
@@ -156,8 +165,10 @@ const AppContent: React.FC = () => {
         {!copilotLoading && !copilotError && isInitialized && (
           <Suspense fallback={<LoadingFallback />}>
             <ChatInterface
+              key={sessionId}
               welcomeMessage={welcomeMessage}
               isInteractionEnabled={disclaimerAccepted}
+              onEndSession={handleEndSession}
             />
           </Suspense>
         )}
