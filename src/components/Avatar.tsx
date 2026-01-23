@@ -176,8 +176,17 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     }
 
     if (activeViseme) {
-      const mouthShape = VISEME_MOUTH_SHAPES[activeViseme.visemeId] || 'neutral';
-      setCurrentMouthShape(mouthShape);
+      // Check if this viseme has been active for too long without a replacement
+      // This prevents the mouth from staying open during silence/pauses
+      const MAX_VISEME_DURATION = 300; // ms
+      const timeSinceVisemeStart = elapsed - activeViseme.audioOffset;
+
+      if (timeSinceVisemeStart > MAX_VISEME_DURATION) {
+        setCurrentMouthShape('neutral');
+      } else {
+        const mouthShape = VISEME_MOUTH_SHAPES[activeViseme.visemeId] || 'neutral';
+        setCurrentMouthShape(mouthShape);
+      }
     }
 
     animationRef.current = requestAnimationFrame(animateVisemes);
