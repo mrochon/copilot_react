@@ -1,0 +1,105 @@
+.end-chat-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.end-chat-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    animation: slideIn 0.3s ease-out;
+}
+
+.end-chat-content {
+    padding: 2rem;
+    text-align: center;
+}
+
+.end-chat-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.end-chat-content h2 {
+    color: #323130;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.end-chat-message {
+    color: #605e5c;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.end-chat-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.download-pdf-button {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    min-width: 200px;
+}
+
+.download-pdf-button:hover {
+    background-color: #106ebe;
+}
+
+.download-pdf-button:disabled {
+    background-color: #c8c6c4;
+    cursor: not-allowed;
+}
+
+.leave-chat-button {
+    background-color: transparent;
+    color: #323130;
+    border: 1px solid #c8c6c4;
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.leave-chat-button:hover {
+    background-color: #f3f2f1;
+    border-color: #8a8886;
+}
+
+.resume-link {
+    color: #0078d4;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.resume-link:hover {
+    text-decoration: underline;
+}
