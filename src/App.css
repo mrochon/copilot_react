@@ -699,23 +699,18 @@ body {
     /* managed by grid gap */
   }
 
-  /* Toggle text/icon visibility on mobile */
-  .send-button .button-text {
-    display: none;
+  /* Stack columns on mobile */
+  .chat-content-wrapper {
+    flex-direction: column;
   }
 
-  .send-button .button-icon {
-    display: flex;
+  .avatar-section {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e1dfdd;
+    min-height: 200px;
   }
-}
-
-/* Desktop Styles for Send Button */
-.send-button .button-icon {
-  display: none;
-}
-
-.send-button .button-text {
-  display: inline;
 }
 
 /* Scrollbar Styles */
