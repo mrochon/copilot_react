@@ -10,6 +10,7 @@ interface MessageInputProps {
   voiceError?: string | null;
   voiceSupported?: boolean;
   resetToken?: number;
+  externalMessage?: string | null;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -21,9 +22,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   voiceDraft,
   voiceError,
   voiceSupported = true,
-  resetToken
+  resetToken,
+  externalMessage
 }) => {
   const [message, setMessage] = useState('');
+
+  // Update input if external message is provided
+  useEffect(() => {
+    if (externalMessage) {
+      setMessage(externalMessage);
+    }
+  }, [externalMessage]);
 
   useEffect(() => {
     if (voiceDraft !== undefined) {

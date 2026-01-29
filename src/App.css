@@ -199,7 +199,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  padding: 0.5rem;
   background-color: #fafbfc;
   border-right: 1px solid #e1dfdd;
   /* Changed from border-bottom */
@@ -238,9 +238,9 @@ body {
 }
 
 .speech-status {
-  margin-top: 1rem;
+  margin-top: 0.25rem;
   text-align: center;
-  min-height: 40px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -262,7 +262,8 @@ body {
 
 .speech-loading {
   color: #0078d4;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
   background-color: #f3f9ff;
   border-radius: 4px;
   border: 1px solid #b3d6f7;

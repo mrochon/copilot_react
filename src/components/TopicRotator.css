@@ -1,0 +1,136 @@
+.topic-rotator-container {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    /* Ensure fly-in/out doesn't cause scrollbars */
+    padding: 0.25rem;
+    min-height: auto;
+    flex-grow: 1;
+    /* Allow it to take available space but not force it */
+}
+
+/* Section Header Labels */
+.section-header {
+    font-size: 0.6rem;
+    /* Even smaller */
+    font-weight: 500;
+    font-style: italic;
+    /* Italicized */
+    color: #000000;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    margin-top: 0.25rem;
+    text-align: center;
+    width: 100%;
+    letter-spacing: 0.5px;
+}
+
+/* Topic Pill Styles */
+.topic-pill {
+    background: linear-gradient(135deg, #FFB900 0%, #FF8C00 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    /* Smaller padding */
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    /* Smaller font */
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+    margin-bottom: 0.75rem;
+    width: 95%;
+    border: 2px solid #ffffff;
+    outline: 2px solid #FF8C00;
+    outline-offset: -3px;
+
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease;
+}
+
+/* Animations Logic */
+.topic-pill.hidden {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+    transition: none;
+    /* Instant reset */
+}
+
+.topic-pill.fly-in {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.topic-pill.fly-out {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+    /* Fly UP and fade out */
+}
+
+/* QUESTIONS Styles */
+.questions-list {
+    width: 100%;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.questions-list.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.questions-list.fade-out {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.questions-list ul {
+    list-style-type: none;
+    /* Remove default bullets to customize */
+    padding-left: 0.5rem;
+}
+
+.questions-list li {
+    position: relative;
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+    /* Reduced margin */
+    font-size: 0.8rem;
+    /* Slightly smaller font */
+    line-height: 1.35;
+    color: #323130;
+
+    /* Additional polish */
+    background-color: rgba(255, 255, 255, 0.5);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    border-radius: 4px;
+}
+
+/* Custom bullet */
+.questions-list li::before {
+    content: "■";
+    color: #FF8C00;
+    /* Match pill */
+    position: absolute;
+    left: 0;
+    font-size: 0.8em;
+    top: 0.3em;
+}
+
+.clickable-question {
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.clickable-question:hover {
+    background-color: rgba(255, 140, 0, 0.1) !important;
+    text-decoration: underline;
+    color: #000;
+}
+
+@media (max-width: 768px) {
+    .topic-rotator-container {
+        display: none !important;
+    }
+}
