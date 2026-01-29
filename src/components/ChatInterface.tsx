@@ -318,7 +318,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
       )}
 
       <div className="chat-header">
-        <h3>Chat with Copilot Studio</h3>
+        <h3>Ask blAIr Anything EZCORP</h3>
         <button onClick={() => setShowEndChatModal(true)} className="end-chat-button" style={{
           backgroundColor: '#0078d4',
           color: 'white',

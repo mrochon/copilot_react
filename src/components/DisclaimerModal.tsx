@@ -13,7 +13,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ onContinue }) 
           <h2>Ask blAIr Anything EZCORP</h2>
           <img src="/Ask_Blair.png" alt="Ask Blair" className="disclaimer-image" />
           <p className="disclaimer-message">
-            I'm AI Blair, your quick EZCORP HR assistant; I'm helpful but can make mistakes, so please verify my info.</p>
+            I'm AI Blair, your quick EZCORP virtual assistant; I'm helpful but can make mistakes, so please verify my info.</p>
           <p className="disclaimer-message">Press Continue to acknowledge.</p>
           <button
             className="disclaimer-button"
