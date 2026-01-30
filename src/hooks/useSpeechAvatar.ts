@@ -38,7 +38,6 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   });
 
   const [ttsService, setTtsService] = useState<TTSService | null>(null);
-  const chunksQueue = useRef<string[]>([]);
   const isCancelled = useRef<boolean>(false);
 
   const provider = config.ttsProvider || 'azure';
@@ -127,67 +126,12 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     };
   }, [provider, config.speechKey, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
 
-  // Helper to process the next chunk in the queue
-  const processNextChunk = useCallback(async () => {
-    if (!ttsService || chunksQueue.current.length === 0 || isCancelled.current) {
-      if (chunksQueue.current.length === 0 && !isCancelled.current) {
-        // Naturally finished all chunks, ensure state is clean
-        // We do WAIT for audio to end (handleSpeechEnd calls this), so we are truly done here?
-        // No, processNextChunk is called either initially OR when previous chunk ended.
-        // If queue is empty here, it means we just finished the last chunk (called from handleSpeechEnd)
-        // OR we had no chunks to begin with.
 
-        setState(prev => ({
-          ...prev,
-          isSpeaking: false,
-          visemeData: [],
-          audioBuffer: null
-        }));
-      }
-      return;
-    }
-
-    const nextChunk = chunksQueue.current.shift();
-    if (!nextChunk) return;
-
-    try {
-      console.log(`Processing next TTS chunk (${chunksQueue.current.length} remaining): "${nextChunk.substring(0, 20)}..."`);
-
-      const result = await ttsService.synthesizeSpeechWithVisemes(nextChunk);
-
-      if (isCancelled.current) {
-        console.log('Speech cancelled after synthesis, discarding result');
-        return;
-      }
-
-      console.log(`Chunk synthesis complete.`);
-
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        isSpeaking: true, // Ensure we stay in speaking state
-        visemeData: result.visemeData,
-        audioBuffer: result.audioBuffer
-      }));
-
-    } catch (error) {
-      console.error('Chunk synthesis failed:', error);
-      // For now, let's stop and report error
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: `Speech chunk synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        isSpeaking: false
-      }));
-      chunksQueue.current = []; // Clear remaining
-    }
-  }, [ttsService]);
 
   // Cancel speech (clear queue and stop)
   const cancelSpeech = useCallback(() => {
     console.log('Cancelling speech...');
     isCancelled.current = true;
-    chunksQueue.current = [];
     setState(prev => ({
       ...prev,
       isSpeaking: false,
@@ -196,7 +140,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     }));
   }, []);
 
-  // Speak text with lip-sync (chunked)
+  // Speak text with lip-sync
   const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized || !ttsService) {
       throw new Error('Speech service not initialized');
@@ -209,7 +153,6 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
 
     // Reset cancellation state
     isCancelled.current = false;
-    chunksQueue.current = [];
 
     setState(prev => ({
       ...prev,
@@ -218,25 +161,29 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     }));
 
     try {
+      console.log('Starting speech synthesis...');
 
-      // No chunking for any provider - process full text to avoid skipping issues
-      chunksQueue.current = [text];
+      const result = await ttsService.synthesizeSpeechWithVisemes(text);
 
-      console.log(`Processing full text as single chunk`);
-
-      // Calculate estimated total duration (approx 15 chars per sec = 66ms per char)
-      const estimatedDuration = Math.round(text.length / 15 * 1000);
-
-      // Start processing the first chunk immediately
-      if (chunksQueue.current.length > 0) {
-        void processNextChunk();
-      } else {
+      if (isCancelled.current) {
+        console.log('Speech cancelled after synthesis, discarding result');
         setState(prev => ({ ...prev, isLoading: false }));
+        return 0;
       }
 
-      return estimatedDuration;
+      console.log(`Speech synthesis complete. Duration: ${result.duration}ms`);
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        isSpeaking: true,
+        visemeData: result.visemeData,
+        audioBuffer: result.audioBuffer
+      }));
+
+      return result.duration;
     } catch (error) {
-      console.error('Speech synthesis setup failed:', error);
+      console.error('Speech synthesis failed:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -244,7 +191,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       }));
       return 0;
     }
-  }, [state.isInitialized, ttsService, processNextChunk]);
+  }, [state.isInitialized, ttsService]);
 
   // Speak text without lip-sync (simple fallback)
   const speakWithoutLipSync = useCallback(async (text: string): Promise<void> => {
@@ -282,20 +229,15 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
 
   const handleSpeechEnd = useCallback(() => {
     // Called when the audio player (Avatar) finishes the current buffer
-    // Check if we have more chunks
-    if (chunksQueue.current.length > 0 && !isCancelled.current) {
-      console.log('Chunk finished, fetching/playing next chunk...');
-      void processNextChunk();
-    } else {
-      console.log('All chunks finished or cancelled.');
-      setState(prev => ({
-        ...prev,
-        isSpeaking: false,
-        visemeData: [],
-        audioBuffer: null
-      }));
-    }
-  }, [processNextChunk]);
+    // Since we no longer chunk, we are done
+    console.log('All chunks finished or cancelled.');
+    setState(prev => ({
+      ...prev,
+      isSpeaking: false,
+      visemeData: [],
+      audioBuffer: null
+    }));
+  }, []);
 
   // Clear error
   const clearError = useCallback(() => {
