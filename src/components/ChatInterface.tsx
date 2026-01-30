@@ -52,7 +52,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
     speakWithLipSync,
     handleSpeechStart,
     handleSpeechEnd,
-    cancelSpeech,
     clearError: clearSpeechAvatarError
   } = speechAvatar;
 
@@ -169,7 +168,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   const handleSendMessage = useCallback(async (text: string) => {
     // Stop any ongoing speech when user sends a new message (interruption)
     if (isAvatarSpeaking) {
-      cancelSpeech();
       avatarRef.current?.stopSpeech();
     }
 
@@ -254,9 +252,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   }, [handleSendMessage, isVoiceRecording, resetVoiceRecognition, voiceFinalResult]);
 
   const handleStopSpeech = useCallback(() => {
-    cancelSpeech();
     avatarRef.current?.stopSpeech();
-  }, [cancelSpeech]);
+  }, []);
 
   // Keyboard shortcut to stop speech: Shift + S
   useEffect(() => {
@@ -277,7 +274,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   const handleStartVoice = useCallback(() => {
     // Stop any ongoing speech when user starts voice input (interruption)
     if (isAvatarSpeaking) {
-      cancelSpeech();
       avatarRef.current?.stopSpeech();
     }
     resetVoiceRecognition();

@@ -370,7 +370,7 @@ body {
 .message-bot .message-text h4,
 .message-bot .message-text h5,
 .message-bot .message-text h6 {
-  margin: 0.5rem 0 0.25rem 0;
+  margin: 0.75rem 0 0.5rem 0;
   font-weight: 600;
 }
 
@@ -396,7 +396,7 @@ body {
 }
 
 .message-bot .message-text p {
-  margin: 0.25rem 0;
+  margin: 0.5rem 0;
 }
 
 .message-bot .message-text p:first-child {
@@ -409,12 +409,12 @@ body {
 
 .message-bot .message-text ul,
 .message-bot .message-text ol {
-  margin: 0.25rem 0;
+  margin: 0.5rem 0;
   padding-left: 1.5rem;
 }
 
 .message-bot .message-text li {
-  margin: 0.125rem 0;
+  margin: 0.25rem 0;
 }
 
 .message-bot .message-text code {
@@ -452,12 +452,6 @@ body {
 
 .message-bot .message-text a:hover {
   text-decoration: underline;
-}
-
-.message-bot .message-text br {
-  display: block;
-  content: "";
-  margin-top: 0.25rem;
 }
 
 .message-bot .message-text strong {

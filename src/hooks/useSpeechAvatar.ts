@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { azureSpeechService } from '../AzureSpeechService';
 import { elevenLabsTTSService } from '../ElevenLabsTTSService';
-import { chunkText } from '../utils/textChunker';
 import { TTSService } from '../TTSService';
 import type { VisemeData } from '../TTSService';
 
@@ -219,19 +218,18 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     }));
 
     try {
-      console.log('Initializing chunked speech for text length:', text.length);
 
-      // Use helper to chunk text
-      chunksQueue.current = chunkText(text);
-      console.log(`Text split into ${chunksQueue.current.length} chunks`);
+      // No chunking for any provider - process full text to avoid skipping issues
+      chunksQueue.current = [text];
 
-      // Calculate estimated total duration (approx 25 chars per sec = 40ms per char)
-      // Increased from 15 to 25 to speed up typing animation as user reported it was too slow compared to voice.
-      const estimatedDuration = Math.round(text.length / 20 * 1000);
+      console.log(`Processing full text as single chunk`);
+
+      // Calculate estimated total duration (approx 15 chars per sec = 66ms per char)
+      const estimatedDuration = Math.round(text.length / 15 * 1000);
 
       // Start processing the first chunk immediately
       if (chunksQueue.current.length > 0) {
-        await processNextChunk();
+        void processNextChunk();
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
       }
