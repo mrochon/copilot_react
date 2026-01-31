@@ -388,10 +388,18 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     </>
   );
 
+  const displayImageSrc = useMemo(() => {
+    if (isSpeaking && imageSrc && (imageSrc.includes('agent2.jpg') || imageSrc.includes('agent2.png'))) {
+      const extension = imageSrc.split('.').pop();
+      return imageSrc.replace(`.${extension}`, '.gif').replace('agent2', 'agent3');
+    }
+    return imageSrc;
+  }, [isSpeaking, imageSrc]);
+
   const renderPhotoFace = () => (
     <>
       <div className="avatar-photo-wrapper">
-        {imageSrc && <img src={imageSrc} alt="AI assistant" className="avatar-photo" />}
+        {displayImageSrc && <img src={displayImageSrc} alt="AI assistant" className="avatar-photo" />}
         <div className="avatar-photo-depth" />
         <div className="avatar-photo-highlight" />
         <div className="avatar-photo-shadow" />
