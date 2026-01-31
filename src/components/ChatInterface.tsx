@@ -103,6 +103,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
       .replace(/(https?:\/\/[^\s]+)/g, '')     // Strip standalone URLs
       .replace(/\*Source:\*/gi, "Source: ")    // Make Source label sound natural
       .replace(/EZCORP/gi, "easy corp")
+      .replace(/EZPAWN/gi, "easy pawn")
       .replace(/:/g, ", ");
   }, []);
 
