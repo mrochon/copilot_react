@@ -303,7 +303,9 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     cleanupObjectUrl();
   }, [cleanupObjectUrl]);
 
-  const displayImageSrc = isSpeaking ? '/avatars/agent5.gif' : '/avatars/agent4.gif';
+  const displayImageSrc = isSpeaking
+    ? (import.meta.env.VITE_AVATAR_SPEAKING_IMAGE || '/avatars/agent5.gif')
+    : (import.meta.env.VITE_AVATAR_IDLE_IMAGE || '/avatars/agent4.gif');
 
   const renderPhotoFace = () => {
     // Only apply if we have a valid shape (though we default to neutral)
