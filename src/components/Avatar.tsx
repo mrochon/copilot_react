@@ -3,12 +3,7 @@ import type { CSSProperties } from 'react';
 import { VisemeData } from '../AzureSpeechService';
 import './Avatar.css';
 
-interface MouthConfig {
-  top?: string;
-  left?: string;
-  width?: string;
-  height?: string;
-}
+
 
 interface AvatarProps {
   isListening?: boolean;
@@ -19,12 +14,13 @@ interface AvatarProps {
   onSpeechEnd?: () => void;
   onStopSpeech?: () => void;
   imageSrc?: string;
-  mouthConfig?: MouthConfig;
 }
 
 export interface AvatarRef {
   stopSpeech: () => void;
 }
+
+
 
 type PhotoMouthTransform = {
   scaleX: number;
@@ -99,13 +95,6 @@ const PHOTO_MOUTH_TRANSFORMS: Record<string, PhotoMouthTransform> = {
   h: { scaleX: 1.25, scaleY: 0.85 },
 };
 
-const DEFAULT_MOUTH_CONFIG: Required<MouthConfig> = {
-  top: '68%',
-  left: '50%',
-  width: '22%',
-  height: '14%',
-};
-
 export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
   isListening = false,
   isSpeaking = false,
@@ -115,10 +104,8 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
   onSpeechEnd,
   onStopSpeech,
   imageSrc,
-  mouthConfig,
 }, ref) => {
   const [currentMouthShape, setCurrentMouthShape] = useState<string>('neutral');
-  const [eyeBlinkState, setEyeBlinkState] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -131,29 +118,6 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
       objectUrlRef.current = null;
     }
   }, []);
-
-  const mergedMouthConfig = useMemo(() => ({
-    top: mouthConfig?.top ?? DEFAULT_MOUTH_CONFIG.top,
-    left: mouthConfig?.left ?? DEFAULT_MOUTH_CONFIG.left,
-    width: mouthConfig?.width ?? DEFAULT_MOUTH_CONFIG.width,
-    height: mouthConfig?.height ?? DEFAULT_MOUTH_CONFIG.height,
-  }), [mouthConfig]);
-
-  const photoMouthStyle = useMemo<CSSProperties | undefined>(() => {
-    if (!imageSrc) {
-      return undefined;
-    }
-    const transform = PHOTO_MOUTH_TRANSFORMS[currentMouthShape] ?? PHOTO_MOUTH_TRANSFORMS.neutral;
-    const rotate = transform.rotate ? ` rotate(${transform.rotate})` : '';
-    return {
-      top: mergedMouthConfig.top,
-      left: mergedMouthConfig.left,
-      width: mergedMouthConfig.width,
-      height: mergedMouthConfig.height,
-      transform: `translate(-50%, -50%) translateZ(40px) scale(${transform.scaleX}, ${transform.scaleY})${rotate}`,
-      zIndex: 10,
-    };
-  }, [currentMouthShape, mergedMouthConfig, imageSrc]);
 
   const animateVisemes = useCallback(() => {
     const audioElement = audioRef.current;
@@ -176,9 +140,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     }
 
     if (activeViseme) {
-      // Check if this viseme has been active for too long without a replacement
-      // This prevents the mouth from staying open during silence/pauses
-      const MAX_VISEME_DURATION = 300; // ms
+      const MAX_VISEME_DURATION = 300;
       const timeSinceVisemeStart = elapsed - activeViseme.audioOffset;
 
       if (timeSinceVisemeStart > MAX_VISEME_DURATION) {
@@ -205,14 +167,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
 
     const startPlayback = async (): Promise<void> => {
       const element = audioRef.current;
-      if (!element) {
-        return;
-      }
-
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
+      if (!element) return;
 
       try {
         await element.play();
@@ -227,7 +182,6 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
         if (error instanceof DOMException && error.name === 'NotAllowedError') {
           console.warn('Audio playback blocked until user interaction.');
           onSpeechEnd?.();
-          setCurrentMouthShape('neutral');
 
           if (!pendingResumeHandlerRef.current) {
             const resume = async () => {
@@ -252,7 +206,6 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
 
           return;
         }
-
         throw error;
       }
     };
@@ -284,6 +237,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
       audioElement.pause();
       audioElement.currentTime = 0;
     }
+
 
     if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
@@ -328,11 +282,6 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     }
 
     const handleEnded = () => {
-      setCurrentMouthShape('neutral');
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
       cleanupObjectUrl();
       onSpeechEnd?.();
     };
@@ -343,27 +292,7 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     };
   }, [onSpeechEnd]);
 
-  // Eye blinking animation remains for stylised fallback
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setEyeBlinkState(true);
-      setTimeout(() => setEyeBlinkState(false), 150);
-    }, 2000 + Math.random() * 3000);
-
-    return () => clearInterval(blinkInterval);
-  }, []);
-
-  useEffect(() => {
-    if (!isSpeaking) {
-      setCurrentMouthShape('neutral');
-    }
-  }, [isSpeaking]);
-
   useEffect(() => () => {
-    if (animationRef.current !== null) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
 
     if (pendingResumeHandlerRef.current) {
       document.removeEventListener('pointerdown', pendingResumeHandlerRef.current);
@@ -374,32 +303,36 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
     cleanupObjectUrl();
   }, [cleanupObjectUrl]);
 
-  const renderStylisedFace = () => (
-    <>
-      <div className={`avatar-eye avatar-eye-left ${eyeBlinkState ? 'blinking' : ''}`}>
-        <div className="avatar-pupil" />
-      </div>
-      <div className={`avatar-eye avatar-eye-right ${eyeBlinkState ? 'blinking' : ''}`}>
-        <div className="avatar-pupil" />
-      </div>
-      <div className={`avatar-mouth mouth-${currentMouthShape} ${isSpeaking ? 'speaking' : ''}`}>
-        <div className="mouth-inner" />
-      </div>
-    </>
-  );
+  const displayImageSrc = isSpeaking ? '/avatars/agent5.gif' : '/avatars/agent4.gif';
 
-  const displayImageSrc = useMemo(() => {
-    if (isSpeaking && imageSrc && (imageSrc.includes('agent2.jpg') || imageSrc.includes('agent2.png'))) {
-      const extension = imageSrc.split('.').pop();
-      return imageSrc.replace(`.${extension}`, '.gif').replace('agent2', 'agent3');
-    }
-    return imageSrc;
-  }, [isSpeaking, imageSrc]);
+  const renderPhotoFace = () => {
+    // Only apply if we have a valid shape (though we default to neutral)
+    const transform = PHOTO_MOUTH_TRANSFORMS[currentMouthShape] ?? PHOTO_MOUTH_TRANSFORMS.neutral;
+    const rotate = transform.rotate ? ` rotate(${transform.rotate})` : '';
 
-  const renderPhotoFace = () => (
-    <>
+    // Base position from env vars
+    const baseStyle: React.CSSProperties = {
+      top: import.meta.env.VITE_AVATAR_MOUTH_TOP,
+      left: import.meta.env.VITE_AVATAR_MOUTH_LEFT,
+      width: import.meta.env.VITE_AVATAR_MOUTH_WIDTH,
+      height: import.meta.env.VITE_AVATAR_MOUTH_HEIGHT,
+      // Apply the viseme transform. Note: translate(-50%, -50%) handles the centering.
+      transform: `translate(-50%, -50%) scale(${transform.scaleX}, ${transform.scaleY})${rotate}`,
+      // Disable the CSS fallback animation when we are driving it with Visemes
+      animation: 'none',
+      // Smooth the transitions to avoid quivering
+      transition: `transform ${import.meta.env.VITE_AVATAR_TRANSITION_DURATION || '0.15s'} ease-out`,
+    };
+
+    return (
       <div className="avatar-photo-wrapper">
-        {displayImageSrc && <img src={displayImageSrc} alt="AI assistant" className="avatar-photo" />}
+        <img src={displayImageSrc} alt="AI assistant" className="avatar-photo" />
+        {isSpeaking && (
+          <div
+            className="avatar-mouth-overlay"
+            style={baseStyle}
+          />
+        )}
         <div className="avatar-photo-depth" />
         <div className="avatar-photo-highlight" />
         <div className="avatar-photo-shadow" />
@@ -407,17 +340,13 @@ export const Avatar = forwardRef<AvatarRef, AvatarProps>(({
         <div className="avatar-photo-outline" />
         <div className="avatar-photo-gloss" />
       </div>
-      <div className={`avatar-mouth-overlay ${isSpeaking ? 'speaking' : ''}`} style={photoMouthStyle}>
-        <div className="avatar-mouth-overlay-inner" />
-        <div className="avatar-mouth-overlay-highlight" />
-      </div>
-    </>
-  );
+    );
+  };
 
   return (
     <div className={`avatar-container ${isListening ? 'listening' : ''} ${isSpeaking ? 'speaking' : ''}`}>
-      <div className={`avatar-face ${imageSrc ? 'avatar-face-photo' : ''}`}>
-        {imageSrc ? renderPhotoFace() : renderStylisedFace()}
+      <div className={`avatar-face avatar-face-photo`}>
+        {renderPhotoFace()}
 
         {isListening && (
           <div className="listening-indicator">
