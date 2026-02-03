@@ -1,15 +1,17 @@
 .topic-rotator-container {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow: hidden;
-    /* Ensure fly-in/out doesn't cause scrollbars */
+    overflow-y: auto;
+    /* Allow scrolling if questions overflow */
+    overflow-x: hidden;
     padding: 0.25rem;
-    min-height: auto;
-    flex-grow: 1;
-    /* Allow it to take available space but not force it */
+    min-height: 0;
+    /* Critical: allow flex item to shrink below content size */
+    flex: 1 1 auto;
+    /* Grow and shrink as needed */
 }
 
 /* Hide in PDF Export */
@@ -45,7 +47,8 @@
     /* Smaller font */
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    /* Reduced from 0.75rem */
     width: 95%;
     border: 2px solid #ffffff;
     outline: 2px solid #0078d4;

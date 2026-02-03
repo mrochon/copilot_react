@@ -202,13 +202,17 @@ body {
   padding: 0.5rem;
   background-color: #fafbfc;
   border-right: 1px solid #e1dfdd;
-  /* Changed from border-bottom */
   border-bottom: none;
   width: 320px;
-  /* Fixed width sidebar */
   justify-content: flex-start;
-  /* Align to top */
-  overflow-y: auto;
+  overflow: hidden;
+  /* Don't scroll the whole section, let children handle it */
+  max-height: calc(100vh - 140px);
+  /* Tighter constraint */
+  min-height: 0;
+  /* Critical: allow flex children to shrink */
+  flex: 0 1 auto;
+  /* Don't grow, but can shrink */
 }
 
 .avatar-controls {
@@ -633,7 +637,65 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+
+/* Tablet/Medium screens (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .avatar-section {
+    width: 280px;
+    /* Slightly narrower on tablets */
+    max-height: calc(100vh - 160px);
+    /* Tighter height constraint */
+  }
+
+  .topic-rotator-container {
+    margin-top: 0.5rem;
+    /* Reduce spacing */
+  }
+
+  .topic-pill {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .questions-list li {
+    font-size: 0.75rem;
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+  }
+
+  .section-header {
+    font-size: 0.55rem;
+    margin-bottom: 0.2rem;
+    margin-top: 0.2rem;
+  }
+}
+
+/* Small tablets / Large phones (600px - 768px) */
+@media (min-width: 600px) and (max-width: 768px) {
+  .avatar-section {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid #e1dfdd;
+    min-height: 180px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+  }
+
+  .topic-rotator-container {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+    margin-top: 0;
+    margin-left: 1rem;
+  }
+}
+
+/* Mobile (< 600px) */
+@media (max-width: 599px) {
   .app-header {
     padding: 1rem;
     flex-direction: column;
@@ -665,6 +727,7 @@ body {
   .avatar-section {
     width: 100%;
     height: auto;
+    max-height: none;
     border-right: none;
     border-bottom: 1px solid #e1dfdd;
     min-height: 200px;
@@ -691,26 +754,11 @@ body {
     align-items: center;
     justify-content: center;
     height: 100%;
-    /* Match height of input if possible, or auto */
   }
 
   .voice-button {
     width: 100%;
     margin-top: 0;
-    /* managed by grid gap */
-  }
-
-  /* Stack columns on mobile */
-  .chat-content-wrapper {
-    flex-direction: column;
-  }
-
-  .avatar-section {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid #e1dfdd;
-    min-height: 200px;
   }
 }
 
