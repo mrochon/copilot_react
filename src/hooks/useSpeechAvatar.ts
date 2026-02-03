@@ -16,6 +16,9 @@ interface UseSpeechAvatarConfig {
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
   elevenLabsModel?: string;
+  // ElevenLabs chunking config (to fix volume issues on long strings)
+  elevenLabsChunkingEnabled?: boolean;
+  elevenLabsMaxChunkLength?: number;
 }
 
 interface SpeechAvatarState {
@@ -61,7 +64,9 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
           elevenLabsTTSService.initialize({
             apiKey: config.elevenLabsApiKey,
             voiceId: config.elevenLabsVoiceId || '21m00Tcm4TlvDq8ikWAM',
-            model: config.elevenLabsModel || 'eleven_multilingual_v2'
+            model: config.elevenLabsModel || 'eleven_multilingual_v2',
+            chunkingEnabled: config.elevenLabsChunkingEnabled,
+            maxChunkLength: config.elevenLabsMaxChunkLength
           });
 
           service = elevenLabsTTSService;

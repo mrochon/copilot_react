@@ -5,6 +5,8 @@ export interface ElevenLabsConfig {
   apiKey: string;
   voiceId: string;
   model?: string;
+  chunkingEnabled?: boolean;      // Enable text chunking to fix volume issues on long strings
+  maxChunkLength?: number;        // Max characters per chunk (default: 500)
 }
 
 export class ElevenLabsTTSService implements TTSService {
@@ -12,12 +14,16 @@ export class ElevenLabsTTSService implements TTSService {
   private apiKey: string | null = null;
   private voiceId: string | null = null;
   private model: string = 'eleven_multilingual_v2';
+  private chunkingEnabled: boolean = true;
+  private maxChunkLength: number = 500;
 
   initialize(config: ElevenLabsConfig): void {
     try {
       this.apiKey = config.apiKey;
       this.voiceId = config.voiceId;
       this.model = config.model || 'eleven_multilingual_v2';
+      this.chunkingEnabled = config.chunkingEnabled !== false; // Default to true
+      this.maxChunkLength = config.maxChunkLength || 500;
 
       if (!this.apiKey || this.apiKey === 'YOUR_ELEVENLABS_API_KEY') {
         throw new Error('ElevenLabs API key not configured');
@@ -39,13 +45,123 @@ export class ElevenLabsTTSService implements TTSService {
       throw new Error('ElevenLabs service not initialized');
     }
 
+    const preparedText = this.prepareSpeechInput(text);
+
+    // If chunking disabled or text is short enough, use single-call logic
+    if (!this.chunkingEnabled || preparedText.length <= this.maxChunkLength) {
+      return this.synthesizeSingleChunk(preparedText);
+    }
+
+    // Split into chunks and synthesize each
+    const chunks = this.chunkText(preparedText, this.maxChunkLength);
+    console.log(`ElevenLabs: Splitting text into ${chunks.length} chunks for synthesis`);
+
+    const results: TTSResult[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`ElevenLabs: Synthesizing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+      const result = await this.synthesizeSingleChunk(chunks[i]);
+      results.push(result);
+    }
+
+    // Concatenate all chunk results
+    return this.concatenateResults(results);
+  }
+
+  /**
+   * Split text into chunks at sentence boundaries, keeping each chunk under maxLength
+   */
+  private chunkText(text: string, maxLength: number): string[] {
+    // Match sentences: text followed by sentence-ending punctuation and optional whitespace
+    const sentenceRegex = /[^.!?]*[.!?]+\s*/g;
+    const sentences = text.match(sentenceRegex) || [text];
+
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    for (const sentence of sentences) {
+      // If adding this sentence would exceed maxLength and we already have content, start a new chunk
+      if ((currentChunk + sentence).length > maxLength && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        currentChunk += sentence;
+      }
+    }
+
+    // Don't forget the last chunk
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+
+    // Handle edge case: if text had no sentence boundaries and is too long, 
+    // we still return it as a single chunk (better than nothing)
+    if (chunks.length === 0 && text.trim()) {
+      chunks.push(text.trim());
+    }
+
+    return chunks;
+  }
+
+  /**
+   * Concatenate multiple TTSResults into a single result
+   */
+  private concatenateResults(results: TTSResult[]): TTSResult {
+    if (results.length === 0) {
+      return { audioBuffer: new ArrayBuffer(0), visemeData: [], duration: 0 };
+    }
+
+    if (results.length === 1) {
+      return results[0];
+    }
+
+    // Calculate total buffer size
+    let totalBufferSize = 0;
+    for (const result of results) {
+      totalBufferSize += result.audioBuffer.byteLength;
+    }
+
+    // Combine audio buffers
+    const combinedBuffer = new Uint8Array(totalBufferSize);
+    let bufferOffset = 0;
+    for (const result of results) {
+      combinedBuffer.set(new Uint8Array(result.audioBuffer), bufferOffset);
+      bufferOffset += result.audioBuffer.byteLength;
+    }
+
+    // Combine viseme data with adjusted time offsets
+    const combinedVisemes: VisemeData[] = [];
+    let timeOffset = 0;
+
+    for (const result of results) {
+      for (const viseme of result.visemeData) {
+        combinedVisemes.push({
+          audioOffset: viseme.audioOffset + timeOffset,
+          visemeId: viseme.visemeId
+        });
+      }
+      timeOffset += result.duration;
+    }
+
+    const totalDuration = timeOffset;
+    console.log(`ElevenLabs: Concatenated ${results.length} chunks. Total duration: ${totalDuration}ms`);
+
+    return {
+      audioBuffer: combinedBuffer.buffer,
+      visemeData: combinedVisemes,
+      duration: totalDuration
+    };
+  }
+
+  /**
+   * Synthesize a single chunk of text (no further splitting)
+   */
+  private async synthesizeSingleChunk(text: string): Promise<TTSResult> {
     try {
-      const preparedText = this.prepareSpeechInput(text);
       console.log('Generating speech with ElevenLabs...');
 
       // Generate audio using ElevenLabs
-      const audioStream = await this.client.textToSpeech.convert(this.voiceId, {
-        text: preparedText,
+      const audioStream = await this.client!.textToSpeech.convert(this.voiceId!, {
+        text: text,
         model_id: this.model,
         voice_settings: {
           stability: 0.5,
@@ -74,10 +190,10 @@ export class ElevenLabsTTSService implements TTSService {
 
       // ElevenLabs doesn't provide viseme data by default
       // Generate approximate visemes based on text length and estimated duration
-      const duration = await this.getAudioDuration(audioBuffer, preparedText.length);
-      const visemeData = this.generateApproximateVisemes(preparedText, duration);
+      const duration = await this.getAudioDuration(audioBuffer, text.length);
+      const visemeData = this.generateApproximateVisemes(text, duration);
 
-      console.log(`ElevenLabs speech synthesis completed. Duration: ${duration}ms`);
+      console.log(`ElevenLabs chunk synthesis completed. Duration: ${duration}ms`);
 
       return {
         audioBuffer,

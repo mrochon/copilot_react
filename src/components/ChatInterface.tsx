@@ -39,7 +39,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
     // ElevenLabs configuration
     elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
     elevenLabsVoiceId: import.meta.env.VITE_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
-    elevenLabsModel: import.meta.env.VITE_ELEVENLABS_MODEL || 'eleven_multilingual_v2'
+    elevenLabsModel: import.meta.env.VITE_ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    // ElevenLabs chunking config (fixes volume issues on long strings)
+    elevenLabsChunkingEnabled: import.meta.env.VITE_ELEVENLABS_CHUNKING_ENABLED !== 'false',
+    elevenLabsMaxChunkLength: parseInt(import.meta.env.VITE_ELEVENLABS_MAX_CHUNK_LENGTH || '500', 10)
   });
 
   const {
