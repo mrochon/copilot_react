@@ -276,6 +276,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   }, [isAvatarSpeaking, handleStopSpeech]);
 
   const handleStartVoice = useCallback(() => {
+    // Play walkie-talkie sound to signal listening
+    const walkieTalkieSound = new Audio('/walkie-talkie.mp3');
+    walkieTalkieSound.play().catch(err => console.warn('Could not play walkie-talkie sound:', err));
+
     // Stop any ongoing speech when user starts voice input (interruption)
     if (isAvatarSpeaking) {
       avatarRef.current?.stopSpeech();
