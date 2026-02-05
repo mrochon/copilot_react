@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SPEECH_KEY?: string;
   readonly VITE_SPEECH_REGION?: string;
   readonly VITE_SPEECH_VOICE?: string;
+  readonly VITE_SPEECH_SCOPE?: string;
   readonly VITE_SPEECH_RECOGNITION_LANGUAGE?: string;
   readonly VITE_AVATAR_IMAGE_URL?: string;
   readonly VITE_AVATAR_MOUTH_TOP?: string;

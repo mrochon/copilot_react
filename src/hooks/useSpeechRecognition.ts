@@ -109,7 +109,7 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
     }
 
     try {
-      const recognizer = azureSpeechService.createSpeechRecognizer({ language });
+      const recognizer = await azureSpeechService.createSpeechRecognizer({ language });
       recognizerRef.current = recognizer;
 
       // Create new session
@@ -196,7 +196,7 @@ export const useSpeechRecognition = (options: UseSpeechRecognitionOptions = {}) 
         ...prev,
         isRecording: false,
         error: errorMessage.startsWith('Speech service not initialized')
-          ? 'Voice input requires Azure Speech Service. Please set REACT_APP_SPEECH_KEY and REACT_APP_SPEECH_REGION in your .env file. Note: Voice input always uses Azure Speech Service, regardless of TTS provider selection.'
+            ? 'Voice input requires Azure Speech Service via OAuth. Please ensure VITE_SPEECH_SCOPE is set and that you are signed in with permissions for Cognitive Services. Note: Voice input always uses Azure Speech Service, regardless of TTS provider selection.'
           : `Failed to access microphone: ${errorMessage}`
       }));
       cleanupRecognizer();

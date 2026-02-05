@@ -64,34 +64,34 @@ Update the `.env` file with your configuration:
 
 ```env
 # Azure AD Configuration
-REACT_APP_CLIENT_ID=your-azure-app-client-id-here
-REACT_APP_TENANT_ID=your-tenant-id-here
-REACT_APP_REDIRECT_URI=http://localhost:3000
+VITE_CLIENT_ID=your-azure-app-client-id-here
+VITE_TENANT_ID=your-tenant-id-here
+VITE_REDIRECT_URI=http://localhost:3000
 
 # Copilot Studio Configuration
-REACT_APP_COPILOT_ENVIRONMENT_ID=your-environment-id-here
-REACT_APP_COPILOT_AGENT_IDENTIFIER=your-agent-schema-name-here
-REACT_APP_COPILOT_APP_CLIENT_ID=your-copilot-app-client-id-here
-REACT_APP_COPILOT_TENANT_ID=your-tenant-id-here
-REACT_APP_COPILOT_CLOUD=Prod
-REACT_APP_COPILOT_AGENT_TYPE=Published
+VITE_COPILOT_ENVIRONMENT_ID=your-environment-id-here
+VITE_COPILOT_AGENT_IDENTIFIER=your-agent-schema-name-here
+VITE_COPILOT_APP_CLIENT_ID=your-copilot-app-client-id-here
+VITE_COPILOT_TENANT_ID=your-tenant-id-here
+VITE_COPILOT_CLOUD=Prod
+VITE_COPILOT_AGENT_TYPE=Published
 
 # Text-to-Speech Configuration
 # TTS_PROVIDER options: 'azure' or 'elevenlabs'
-REACT_APP_TTS_PROVIDER=azure
+VITE_TTS_PROVIDER=azure
 
-# Azure Speech Service Configuration (when TTS_PROVIDER=azure)
-REACT_APP_SPEECH_KEY=your-azure-speech-service-key
-REACT_APP_SPEECH_REGION=eastus
-REACT_APP_SPEECH_VOICE=en-US-JennyNeural
+# Azure Speech Service Configuration (OAuth2)
+VITE_SPEECH_SCOPE=https://cognitiveservices.azure.com/user_impersonation
+VITE_SPEECH_REGION=your-custom-subdomain
+VITE_SPEECH_VOICE=en-US-JennyNeural
 
 # ElevenLabs Configuration (when TTS_PROVIDER=elevenlabs)
-REACT_APP_ELEVENLABS_API_KEY=your-elevenlabs-api-key
-REACT_APP_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
-REACT_APP_ELEVENLABS_MODEL=eleven_multilingual_v2
+VITE_ELEVENLABS_API_KEY=your-elevenlabs-api-key
+VITE_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+VITE_ELEVENLABS_MODEL=eleven_multilingual_v2
 
 # Development/Testing Configuration
-REACT_APP_USE_MOCK_CLIENT=false
+VITE_USE_MOCK_CLIENT=false
 ```
 
 ### 3. Azure AD Configuration
@@ -117,21 +117,29 @@ REACT_APP_USE_MOCK_CLIENT=false
 
 The application supports two TTS providers: **Azure Speech Service** and **ElevenLabs**.
 
-#### Option A: Azure Speech Service
+#### Option A: Azure Speech Service (OAuth2)
 
 For avatar lip-sync and text-to-speech features:
 
 1. Go to the [Azure Portal](https://portal.azure.com)
 2. Create a new **Speech Service** resource
-3. Go to **Keys and Endpoint** section
-4. Copy **Key 1** and **Region**
+3. In your Entra app registration, add the **Cognitive Services** delegated permission (`user_impersonation`)
+4. Assign the **Cognitive Services User** role on the Speech resource to your app registration
 5. Add these to your `.env` file:
    ```env
-   REACT_APP_TTS_PROVIDER=azure
-   REACT_APP_SPEECH_KEY=your-speech-service-key
-   REACT_APP_SPEECH_REGION=your-region (e.g., eastus)
-   REACT_APP_SPEECH_VOICE=en-US-JennyNeural
+   VITE_TTS_PROVIDER=azure
+   VITE_SPEECH_SCOPE=https://cognitiveservices.azure.com/user_impersonation
+   VITE_SPEECH_REGION=your-custom-subdomain
+   VITE_SPEECH_VOICE=en-US-JennyNeural
    ```
+   
+   **How to find your custom subdomain:**
+   - Go to Azure Portal → Your Speech Service resource
+   - Navigate to "Keys and Endpoint" section
+   - Copy the value from "Custom subdomain name" field (e.g., `mrspeechdom`)
+   - **Do NOT use the region name** (like `eastus`) - this will cause connection errors
+
+**Important Note**: When using OAuth2 authentication with Azure Speech Service, you must use a [custom speech subdomain](https://docs.azure.cn/en-us/ai-services/speech-service/how-to-configure-azure-ad-auth?tabs=portal&pivots=programming-language-csharp) instead of a region name. Configure your Speech Service resource with a custom subdomain in the Azure Portal.
 
 **Supported Voices**: The application supports all Azure Neural voices. Popular options:
 - `en-US-JennyNeural` (default, female)
@@ -153,10 +161,10 @@ For high-quality, natural-sounding speech:
 5. Browse the [Voice Library](https://elevenlabs.io/app/voice-library) to find a voice ID
 6. Add these to your `.env` file:
    ```env
-   REACT_APP_TTS_PROVIDER=elevenlabs
-   REACT_APP_ELEVENLABS_API_KEY=your-elevenlabs-api-key
-   REACT_APP_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
-   REACT_APP_ELEVENLABS_MODEL=eleven_multilingual_v2
+   VITE_TTS_PROVIDER=elevenlabs
+   VITE_ELEVENLABS_API_KEY=your-elevenlabs-api-key
+   VITE_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+   VITE_ELEVENLABS_MODEL=eleven_multilingual_v2
    ```
 
 **Popular Voice IDs**:
@@ -176,12 +184,12 @@ For high-quality, natural-sounding speech:
 **Important for Voice Input**: If you want to use voice input (microphone) to talk to the agent, you must configure Azure Speech Service even when using ElevenLabs for voice output. Voice recognition always requires Azure Speech Service, regardless of your TTS provider choice. Simply add both configurations to your `.env` file:
 ```env
 # For voice OUTPUT (choose one)
-REACT_APP_TTS_PROVIDER=elevenlabs
-REACT_APP_ELEVENLABS_API_KEY=your-key
+VITE_TTS_PROVIDER=elevenlabs
+VITE_ELEVENLABS_API_KEY=your-key
 
 # For voice INPUT (always required for microphone)
-REACT_APP_SPEECH_KEY=your-azure-key
-REACT_APP_SPEECH_REGION=eastus
+VITE_SPEECH_SCOPE=https://cognitiveservices.azure.com/user_impersonation
+VITE_SPEECH_REGION=your-custom-subdomain
 ```
 
 #### Choosing a TTS Provider
@@ -210,11 +218,11 @@ To use a real human face for the avatar:
 1. Add your photo to `public/avatars/` (for example `public/avatars/agent.jpg`)
 2. Update the `.env` file with the photo path and optional mouth placement tweaks:
    ```env
-   REACT_APP_AVATAR_IMAGE_URL=/avatars/agent.jpg
-   REACT_APP_AVATAR_MOUTH_TOP=68%
-   REACT_APP_AVATAR_MOUTH_LEFT=50%
-   REACT_APP_AVATAR_MOUTH_WIDTH=24%
-   REACT_APP_AVATAR_MOUTH_HEIGHT=14%
+   VITE_AVATAR_IMAGE_URL=/avatars/agent.jpg
+   VITE_AVATAR_MOUTH_TOP=68%
+   VITE_AVATAR_MOUTH_LEFT=50%
+   VITE_AVATAR_MOUTH_WIDTH=24%
+   VITE_AVATAR_MOUTH_HEIGHT=14%
    ```
 3. Adjust the mouth placement values to align the lip-sync overlay with your photo
 
@@ -343,11 +351,19 @@ Custom React hook that:
    - Select the Key or I icon in address bar and change site permissions to allow play at load (Sound->Allow)
 
 5. **TTS Service Errors**
-   - Verify `REACT_APP_TTS_PROVIDER` is set to either 'azure' or 'elevenlabs'
-   - For Azure: Check `REACT_APP_SPEECH_KEY` and `REACT_APP_SPEECH_REGION` are correct
-   - For ElevenLabs: Verify `REACT_APP_ELEVENLABS_API_KEY` is valid
+   - Verify `VITE_TTS_PROVIDER` is set to either 'azure' or 'elevenlabs'
+   - For Azure: Check `VITE_SPEECH_SCOPE` and `VITE_SPEECH_REGION` are correct
+   - For ElevenLabs: Verify `VITE_ELEVENLABS_API_KEY` is valid
    - Check browser console for detailed error messages
    - Ensure API keys have proper permissions and quota
+
+6. **Azure Speech Service WebSocket Connection Errors (StatusCode: 1006)**
+   This error indicates the Speech Service is rejecting the OAuth2 authentication. Common causes:
+   - **Missing Role Assignment**: Go to Azure Portal → Your Speech Service → Access control (IAM) → Add role assignment → Select "Cognitive Services User" → Assign to your user or app registration
+   - **Wrong Scope**: Verify your app registration requests `https://cognitiveservices.azure.com/user_impersonation` scope
+   - **Custom Subdomain Not Configured**: Ensure your Speech Service has a custom subdomain in Azure Portal → Properties
+   - **Token Not Refreshed**: Sign out and sign back in to get a fresh token
+   - **Wrong Region/Subdomain**: Double-check `VITE_SPEECH_REGION` matches your Speech Service custom subdomain name exactly
 
 ### Getting Help
 
@@ -381,7 +397,7 @@ The avatar uses viseme data from TTS providers to synchronize lip movements:
 ### Testing and Development
 
 #### Mock Client
-Set `REACT_APP_USE_MOCK_CLIENT=true` to use the mock Copilot Studio client:
+Set `VITE_USE_MOCK_CLIENT=true` to use the mock Copilot Studio client:
 - No network dependencies
 - Predictable responses for UI testing
 - Simulates conversation flow
