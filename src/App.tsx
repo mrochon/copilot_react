@@ -51,10 +51,10 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     // Initialize immediately upon authentication, do not wait for disclaimer
-    if (isAuthenticated && !isInitialized && !copilotLoading) {
+    if (isAuthenticated && !isInitialized && !copilotLoading && !copilotError) {
       initializeCopilotStudio();
     }
-  }, [isAuthenticated, isInitialized, copilotLoading]);
+  }, [isAuthenticated, isInitialized, copilotLoading, copilotError]);
 
   const handleEndSession = () => {
     console.log('Ending chat session...');

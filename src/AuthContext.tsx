@@ -11,7 +11,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   getAccessToken: (config?: any) => Promise<string | null>;
-  getAccessTokenForScopes: (scopes: string[]) => Promise<string | null>;
+  getAccessTokenForScopes: (scopes: string[], options?: { forceRefresh?: boolean }) => Promise<string | null>;
   userPhotoUrl: string | null;
   consentError: string | null;
   resetConsentAttempts: (scope?: string) => void;
@@ -78,7 +78,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       errorString.includes('consent_required') ||
       errorString.includes('interaction_required') ||
       errorString.includes('login_required') ||
-      errorString.includes('aadsts65001')
+      errorString.includes('aadsts65001') ||
+      errorString.includes('monitor_window_timeout')
     );
   };
 
@@ -224,7 +225,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getAccessTokenForScopes = async (scopes: string[]): Promise<string | null> => {
+  const getAccessTokenForScopes = async (
+    scopes: string[],
+    options?: { forceRefresh?: boolean }
+  ): Promise<string | null> => {
     const scopeKey = scopes.join(',');
     
     try {
@@ -236,6 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const tokenRequest = {
         scopes,
         account: accounts[0],
+        forceRefresh: options?.forceRefresh,
       };
 
       console.log('Requesting access token with scopes:', scopes);
@@ -342,7 +347,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       tokenScope = 'https://api.powerplatform.com/.default';
     }
 
-    return getAccessTokenForScopes([tokenScope]);
+    return getAccessTokenForScopes([tokenScope], { forceRefresh: true });
   };
 
   const value: AuthContextType = {
