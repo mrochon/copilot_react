@@ -20,7 +20,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const { sendMessage, resetService } = useCopilotStudio();
-  const { logout, userPhotoUrl } = useAuth();
+  const { logout, userPhotoUrl, getAccessTokenForScopes, consentError, resetConsentAttempts } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<AvatarRef>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -28,13 +28,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
 
   // Initialize speech avatar with TTS provider
   const ttsProvider = (import.meta.env.VITE_TTS_PROVIDER || 'azure') as 'azure' | 'elevenlabs';
+  const speechScope = import.meta.env.VITE_SPEECH_SCOPE || 'https://cognitiveservices.azure.com/user_impersonation';
+
+  const getSpeechToken = useCallback(async () => {
+    return await getAccessTokenForScopes([speechScope]);
+  }, [getAccessTokenForScopes, speechScope]);
 
   const speechAvatar = useSpeechAvatar({
     ttsProvider,
     // Azure configuration
-    speechKey: import.meta.env.VITE_SPEECH_KEY || '',
     speechRegion: import.meta.env.VITE_SPEECH_REGION || 'eastus',
     voiceName: import.meta.env.VITE_SPEECH_VOICE || 'en-US-JennyNeural',
+    getSpeechToken,
     // ElevenLabs configuration
     elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
     elevenLabsVoiceId: import.meta.env.VITE_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
@@ -302,6 +307,65 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
           onLeaveChat={onEndSession}
           chatContainerRef={chatContentRef}
         />
+      )}
+
+      {/* Consent Error Banner */}
+      {consentError && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          backgroundColor: '#d32f2f',
+          color: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <strong style={{ fontSize: '1.1rem' }}>⚠️ Consent Required</strong>
+              <p style={{ marginTop: '0.5rem', whiteSpace: 'pre-line', fontSize: '0.9rem' }}>
+                {consentError}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  resetConsentAttempts();
+                  window.location.reload();
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'white',
+                  color: '#d32f2f',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => resetConsentAttempts()}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '1px solid white',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="chat-header">

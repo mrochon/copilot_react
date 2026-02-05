@@ -11,7 +11,7 @@ export interface TTSResult {
 }
 
 export interface TTSService {
-  initialize(config: any): void;
+  initialize(config: any): Promise<void> | void;
   synthesizeSpeechWithVisemes(text: string): Promise<TTSResult>;
   synthesizeSpeechOnly(text: string): Promise<{ audioBuffer: ArrayBuffer; duration: number }>;
   dispose(): void;

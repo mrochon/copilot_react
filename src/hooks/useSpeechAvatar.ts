@@ -9,9 +9,9 @@ type TTSProvider = 'azure' | 'elevenlabs';
 interface UseSpeechAvatarConfig {
   ttsProvider?: TTSProvider;
   // Azure-specific config
-  speechKey?: string;
   speechRegion?: string;
   voiceName?: string;
+  getSpeechToken?: () => Promise<string | null>;
   // ElevenLabs-specific config
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
@@ -51,12 +51,12 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
           if (!config.elevenLabsApiKey || config.elevenLabsApiKey === 'YOUR_ELEVENLABS_API_KEY') {
             setState(prev => ({ 
               ...prev, 
-              error: 'ElevenLabs API key not configured. Please set REACT_APP_ELEVENLABS_API_KEY in your .env file.' 
+              error: 'ElevenLabs API key not configured. Please set VITE_ELEVENLABS_API_KEY in your .env file.' 
             }));
             return;
           }
 
-          elevenLabsTTSService.initialize({
+          await elevenLabsTTSService.initialize({
             apiKey: config.elevenLabsApiKey,
             voiceId: config.elevenLabsVoiceId || '21m00Tcm4TlvDq8ikWAM',
             model: config.elevenLabsModel || 'eleven_multilingual_v2'
@@ -67,9 +67,15 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
 
           // Also initialize Azure Speech Service for speech recognition (voice input)
           // even when using ElevenLabs for TTS (voice output)
-          if (config.speechKey && config.speechKey !== 'YOUR_AZURE_SPEECH_KEY') {
-            azureSpeechService.initialize({
-              subscriptionKey: config.speechKey,
+          if (config.getSpeechToken) {
+            await azureSpeechService.initialize({
+              getAuthorizationToken: async () => {
+                const token = await config.getSpeechToken?.();
+                if (!token) {
+                  throw new Error('Unable to obtain Azure Speech access token');
+                }
+                return token;
+              },
               region: config.speechRegion || 'eastus',
               voiceName: config.voiceName || 'en-US-JennyNeural'
             });
@@ -77,16 +83,22 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
           }
         } else {
           // Initialize Azure Speech for both TTS and recognition
-          if (!config.speechKey || config.speechKey === 'YOUR_AZURE_SPEECH_KEY') {
+          if (!config.getSpeechToken) {
             setState(prev => ({ 
               ...prev, 
-              error: 'Azure Speech Service key not configured. Please set REACT_APP_SPEECH_KEY in your .env file.' 
+              error: 'Azure Speech Service OAuth not configured. Please ensure VITE_SPEECH_SCOPE is set and that you are signed in with permissions for Cognitive Services.' 
             }));
             return;
           }
 
-          azureSpeechService.initialize({
-            subscriptionKey: config.speechKey,
+          await azureSpeechService.initialize({
+            getAuthorizationToken: async () => {
+              const token = await config.getSpeechToken?.();
+              if (!token) {
+                throw new Error('Unable to obtain Azure Speech access token');
+              }
+              return token;
+            },
             region: config.speechRegion || 'eastus',
             voiceName: config.voiceName || 'en-US-JennyNeural'
           });
@@ -122,7 +134,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         elevenLabsTTSService.dispose();
       }
     };
-  }, [provider, config.speechKey, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
+  }, [provider, config.getSpeechToken, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
 
   // Speak text with lip-sync
   const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
