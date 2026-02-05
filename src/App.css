@@ -542,7 +542,8 @@ body {
 }
 
 .message-textarea {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   border: 1px solid #d2d0ce;
   border-radius: 4px;
   padding: 0.75rem;
@@ -651,6 +652,10 @@ body {
   .input-container {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .message-textarea {
+    width: 100%;
   }
 
   .send-button {
