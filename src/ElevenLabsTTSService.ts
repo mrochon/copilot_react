@@ -130,19 +130,26 @@ export class ElevenLabsTTSService implements TTSService {
 
     // Combine viseme data with adjusted time offsets
     const combinedVisemes: VisemeData[] = [];
+    // Use viseme timestamps themselves to drive offsets to avoid drift
     let timeOffset = 0;
+    let currentMaxOffset = 0;
 
     for (const result of results) {
       for (const viseme of result.visemeData) {
+        const globalOffset = viseme.audioOffset + timeOffset;
         combinedVisemes.push({
-          audioOffset: viseme.audioOffset + timeOffset,
+          audioOffset: globalOffset,
           visemeId: viseme.visemeId
         });
+        if (globalOffset > currentMaxOffset) {
+          currentMaxOffset = globalOffset;
+        }
       }
-      timeOffset += result.duration;
+      // Advance base offset to the end of the visemes seen so far
+      timeOffset = currentMaxOffset;
     }
 
-    const totalDuration = timeOffset;
+    const totalDuration = currentMaxOffset;
     console.log(`ElevenLabs: Concatenated ${results.length} chunks. Total duration: ${totalDuration}ms`);
 
     return {
