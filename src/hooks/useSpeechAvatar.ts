@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { azureSpeechService } from '../AzureSpeechService';
 import { elevenLabsTTSService } from '../ElevenLabsTTSService';
 import { TTSService } from '../TTSService';
@@ -38,6 +38,8 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   });
 
   const [ttsService, setTtsService] = useState<TTSService | null>(null);
+  const isCancelled = useRef<boolean>(false);
+
   const provider = config.ttsProvider || 'azure';
 
   // Initialize speech service
@@ -108,18 +110,18 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
         }
 
         setTtsService(service);
-        setState(prev => ({ 
-          ...prev, 
-          isInitialized: true, 
-          error: null 
+        setState(prev => ({
+          ...prev,
+          isInitialized: true,
+          error: null
         }));
 
         console.log(`Speech avatar service initialized successfully with provider: ${provider}`);
       } catch (error) {
         console.error('Failed to initialize speech service:', error);
-        setState(prev => ({ 
-          ...prev, 
-          error: `Failed to initialize speech service: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        setState(prev => ({
+          ...prev,
+          error: `Failed to initialize speech service: ${error instanceof Error ? error.message : 'Unknown error'}`
         }));
       }
     };
@@ -136,6 +138,20 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     };
   }, [provider, config.getSpeechToken, config.speechRegion, config.voiceName, config.elevenLabsApiKey, config.elevenLabsVoiceId, config.elevenLabsModel]);
 
+
+
+  // Cancel speech (clear queue and stop)
+  const cancelSpeech = useCallback(() => {
+    console.log('Cancelling speech...');
+    isCancelled.current = true;
+    setState(prev => ({
+      ...prev,
+      isSpeaking: false,
+      visemeData: [],
+      audioBuffer: null
+    }));
+  }, []);
+
   // Speak text with lip-sync
   const speakWithLipSync = useCallback(async (text: string): Promise<number> => {
     if (!state.isInitialized || !ttsService) {
@@ -147,22 +163,32 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       return 0;
     }
 
-    setState(prev => ({ 
-      ...prev, 
-      isLoading: true, 
-      error: null 
+    // Reset cancellation state
+    isCancelled.current = false;
+
+    setState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null
     }));
 
     try {
-      console.log('Synthesizing speech with visemes for text:', text);
-      
+      console.log('Starting speech synthesis...');
+
       const result = await ttsService.synthesizeSpeechWithVisemes(text);
-      
-      console.log(`Speech synthesis completed. Duration: ${result.duration}ms, Visemes: ${result.visemeData.length}, AudioBuffer size: ${result.audioBuffer.byteLength}`);
-      
-      setState(prev => ({ 
-        ...prev, 
+
+      if (isCancelled.current) {
+        console.log('Speech cancelled after synthesis, discarding result');
+        setState(prev => ({ ...prev, isLoading: false }));
+        return 0;
+      }
+
+      console.log(`Speech synthesis complete. Duration: ${result.duration}ms`);
+
+      setState(prev => ({
+        ...prev,
         isLoading: false,
+        isSpeaking: true,
         visemeData: result.visemeData,
         audioBuffer: result.audioBuffer
       }));
@@ -170,51 +196,41 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       return result.duration;
     } catch (error) {
       console.error('Speech synthesis failed:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
       return 0;
     }
   }, [state.isInitialized, ttsService]);
 
-  // Speak text without lip-sync (faster)
+  // Speak text without lip-sync (simple fallback)
   const speakWithoutLipSync = useCallback(async (text: string): Promise<void> => {
     if (!state.isInitialized || !ttsService) {
       throw new Error('Speech service not initialized');
     }
 
     if (!text.trim()) {
-      console.warn('Empty text provided for speech synthesis');
       return;
     }
 
-    setState(prev => ({ 
-      ...prev, 
-      isLoading: true, 
-      error: null 
-    }));
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      console.log('Synthesizing speech (no visemes) for text:', text);
-      
       const result = await ttsService.synthesizeSpeechOnly(text);
-      
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoading: false,
+        isSpeaking: true,
         visemeData: [],
         audioBuffer: result.audioBuffer
       }));
-
-      console.log('Speech synthesis completed (no lip-sync)');
     } catch (error) {
-      console.error('Speech synthesis failed:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        error: `Speech synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
   }, [state.isInitialized, ttsService]);
@@ -225,11 +241,14 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
   }, []);
 
   const handleSpeechEnd = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
+    // Called when the audio player (Avatar) finishes the current buffer
+    // Since we no longer chunk, we are done
+    console.log('All chunks finished or cancelled.');
+    setState(prev => ({
+      ...prev,
       isSpeaking: false,
       visemeData: [],
-      audioBuffer: null 
+      audioBuffer: null
     }));
   }, []);
 
@@ -246,12 +265,13 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
     error: state.error,
     visemeData: state.visemeData,
     audioBuffer: state.audioBuffer,
-    
+
     // Actions
     speakWithLipSync,
     speakWithoutLipSync,
     handleSpeechStart,
     handleSpeechEnd,
+    cancelSpeech,
     clearError
   };
 };

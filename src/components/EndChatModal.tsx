@@ -28,6 +28,7 @@ export const EndChatModal: React.FC<EndChatModalProps> = ({ onResume, onLeaveCha
             clone.style.left = '-9999px';
             clone.style.top = '0';
             clone.style.width = `${originalElement.offsetWidth}px`;
+            clone.classList.add('pdf-export-mode');
             clone.style.height = 'auto';
             clone.style.maxHeight = 'none';
             clone.style.overflow = 'visible';
