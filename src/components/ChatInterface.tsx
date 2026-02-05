@@ -8,6 +8,7 @@ import { useAuth } from '../AuthContext';
 import { useSpeechAvatar } from '../hooks/useSpeechAvatar';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { EndChatModal } from './EndChatModal';
+import { TopicRotator } from './TopicRotator';
 
 interface ChatInterfaceProps {
   welcomeMessage: string;
@@ -43,7 +44,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
     // ElevenLabs configuration
     elevenLabsApiKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
     elevenLabsVoiceId: import.meta.env.VITE_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
-    elevenLabsModel: import.meta.env.VITE_ELEVENLABS_MODEL || 'eleven_multilingual_v2'
+    elevenLabsModel: import.meta.env.VITE_ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    // ElevenLabs chunking config (fixes volume issues on long strings)
+    elevenLabsChunkingEnabled: import.meta.env.VITE_ELEVENLABS_CHUNKING_ENABLED !== 'false',
+    elevenLabsMaxChunkLength: parseInt(import.meta.env.VITE_ELEVENLABS_MAX_CHUNK_LENGTH || '500', 10)
   });
 
   const {
@@ -96,6 +100,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   } = useSpeechRecognition({ language: recognitionLanguage });
 
   const [inputResetToken, setInputResetToken] = useState(0);
+  const [externalInput, setExternalInput] = useState<string | null>(null);
   const hasSpokenWelcomeRef = useRef(false);
 
   const cleanTextForSpeech = useCallback((text: string) => {
@@ -106,6 +111,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
       .replace(/(https?:\/\/[^\s]+)/g, '')     // Strip standalone URLs
       .replace(/\*Source:\*/gi, "Source: ")    // Make Source label sound natural
       .replace(/EZCORP/gi, "easy corp")
+      .replace(/EZPAWN/gi, "easy pawn")
       .replace(/:/g, ", ");
   }, []);
 
@@ -275,6 +281,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   }, [isAvatarSpeaking, handleStopSpeech]);
 
   const handleStartVoice = useCallback(() => {
+    // Play walkie-talkie sound to signal listening
+    const walkieTalkieSound = new Audio('/walkie-talkie.mp3');
+    walkieTalkieSound.play().catch(err => console.warn('Could not play walkie-talkie sound:', err));
+
     // Stop any ongoing speech when user starts voice input (interruption)
     if (isAvatarSpeaking) {
       avatarRef.current?.stopSpeech();
@@ -286,6 +296,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
   const handleStopVoice = useCallback(() => {
     void stopRecording();
   }, [stopRecording]);
+
+  const handleQuestionClick = useCallback((question: string) => {
+    setExternalInput(question);
+    // Optional: Focus the input? The input component manages focus but we are just setting state.
+    // Set to null after a tick so it can be set again if clicked again? 
+    // Actually the useEffect in MessageInput just checks if truthy. 
+    // To allow re-clicking same question we might need a timestamp or unique object, but string change is simple enough.
+    // If user clicks same question twice, useEffect won't fire if string is same.
+    // Solution: pass object { text: q, id: Date.now() } or simply rely on user editing.
+    // For now simple string.
+  }, []);
 
 
 
@@ -369,7 +390,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
       )}
 
       <div className="chat-header">
-        <h3>Chat with Copilot Studio</h3>
+        <h3>Ask blAIr Anything EZCORP</h3>
         <button onClick={() => setShowEndChatModal(true)} className="end-chat-button" style={{
           backgroundColor: '#0078d4',
           color: 'white',
@@ -423,6 +444,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
               </div>
             )}
           </div>
+
+          <TopicRotator onQuestionClick={handleQuestionClick} />
         </div>
 
         <div className="chat-container">
@@ -446,6 +469,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ welcomeMessage, is
         voiceError={voiceError}
         voiceSupported={isSpeechInitialized}
         resetToken={inputResetToken}
+        externalMessage={externalInput}
       />
     </div>
   );

@@ -10,6 +10,7 @@ interface MessageInputProps {
   voiceError?: string | null;
   voiceSupported?: boolean;
   resetToken?: number;
+  externalMessage?: string | null;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -21,9 +22,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   voiceDraft,
   voiceError,
   voiceSupported = true,
-  resetToken
+  resetToken,
+  externalMessage
 }) => {
   const [message, setMessage] = useState('');
+
+  // Update input if external message is provided
+  useEffect(() => {
+    if (externalMessage) {
+      setMessage(externalMessage);
+    }
+  }, [externalMessage]);
 
   useEffect(() => {
     if (voiceDraft !== undefined) {
@@ -144,7 +153,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           disabled={!message.trim() || disabled || isVoiceRecording}
           className="send-button"
         >
-          Send
+
+          <span className="button-text">Send </span>
+          <span className="button-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15.5 8L.5 15.5v-5l10-2.5-10-2.5v-5L15.5 8z" />
+            </svg>
+          </span>
         </button>
       </div>
       {voiceError && (
