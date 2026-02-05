@@ -222,6 +222,7 @@ export const useSpeechAvatar = (config: UseSpeechAvatarConfig) => {
       setState(prev => ({
         ...prev,
         isLoading: false,
+        isSpeaking: true,
         visemeData: [],
         audioBuffer: result.audioBuffer
       }));
