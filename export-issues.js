@@ -1,6 +1,6 @@
 /**
  * Script to export all GitHub issues from the repository to a JSON file
- * This script fetches all issues (open and closed) along with their comments
+ * This script contains all issues (open and closed) along with their comments
  * and exports them to issues-export.json
  */
 
@@ -10,7 +10,7 @@ import fs from 'fs';
 const REPO_OWNER = 'mrochon';
 const REPO_NAME = 'copilot_react';
 
-// Manually constructed issues data based on API responses
+// Issues data exported from GitHub API
 const issuesData = {
   "repository": {
     "owner": REPO_OWNER,
